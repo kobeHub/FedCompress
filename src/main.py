@@ -306,6 +306,7 @@ if __name__ == "__main__":
                 tf.config.experimental.set_memory_growth(g, True)
             except:
                 print(f"Cannot set memory growth for GPU {g}")
+        print("GPU Memory Growth Set for all GPUs")
 
     parsed_args = "\t" + "\t".join(f"{k} = {v}\n" for k, v in vars(args).items())
     print("Parameters:")
