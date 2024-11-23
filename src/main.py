@@ -7,10 +7,6 @@ from time import sleep
 import tensorflow as tf
 import network
 
-gpu = tf.config.list_physical_devices("GPU")
-tf.config.experimental.set_memory_growth(device=gpu[0], enable=True)
-tf.config.experimental.set_memory_growth(device=gpu[1], enable=True)
-
 parser = argparse.ArgumentParser(description="Federated Model Compression")
 parser.add_argument(
     "--random_id", default="0a6809e9cb", type=str, help="unique id of experiment"
@@ -302,6 +298,14 @@ def main(run_id=0):
 
 
 if __name__ == "__main__":
+    gpu = tf.config.list_physical_devices("GPU")
+    if gpu:
+        print("GPU Available, setting memory growth")
+        for g in gpu:
+            try:
+                tf.config.experimental.set_memory_growth(g, True)
+            except:
+                print(f"Cannot set memory growth for GPU {g}")
 
     parsed_args = "\t" + "\t".join(f"{k} = {v}\n" for k, v in vars(args).items())
     print("Parameters:")
