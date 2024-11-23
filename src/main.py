@@ -7,6 +7,10 @@ from time import sleep
 import tensorflow as tf
 import network
 
+gpu = tf.config.list_physical_devices("GPU")
+tf.config.experimental.set_memory_growth(device=gpu[0], enable=True)
+tf.config.experimental.set_memory_growth(device=gpu[1], enable=True)
+
 parser = argparse.ArgumentParser(description="Federated Model Compression")
 parser.add_argument(
     "--random_id", default="0a6809e9cb", type=str, help="unique id of experiment"
@@ -273,9 +277,6 @@ def create_server(run_id=0):
 def main(run_id=0):
 
     server = create_server(run_id=run_id)
-	gpu = tf.config.list_physical_devices('GPU')
-	tf.config.experimental.set_memory_growth(device=gpu[0], enable=True)
-	tf.config.experimental.set_memory_growth(device=gpu[1], enable=True)
     history = fl.simulation.start_simulation(
         client_fn=create_client,
         server=server,
