@@ -284,7 +284,7 @@ def main(run_id=0):
             "dashboard_port": 8265,
             # By setting `num_cpus` to match the number of available cores, we ensure that clients are terminated after been executed
             # This way gpu resources are released in every round.
-            "num_cpus": min(args.clients, 7),
+            "num_cpus": min(args.clients, 10),
         },
         client_resources={
             "num_cpus": args.cpu_percentage,
