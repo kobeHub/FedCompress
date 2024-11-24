@@ -180,7 +180,7 @@ class _Server(fl.server.Server):
 			print(f"[Server] - Round {rnd}: For {self.num_clusters} clusters, accuracy {metrics[1]:0.4f} " +
 				f"(Val. Accuracy: {results['val_accuracy'] if 'val_accuracy' in results.keys() else 0.0 :0.4f}).")
 			if 'computation_time' in config.keys():	
-				print(f" Avg computation time: {results['computation_time']:0.4f}, Avg computation cost: {results['comp_cost']:0.4f},"
+				print(f" Avg computation time: {config['computation_time']:0.4f}, Avg computation cost: {results['comp_cost']:0.4f},"
 				f" Avg communication cost: {results['avg_comm_cost']:0.4f}, Total cost: {results['total_cost']:0.4f},"
 				f" Cost efficiency: {results['cost_efficiency']:0.4f}.")
 	
