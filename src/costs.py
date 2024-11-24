@@ -34,7 +34,12 @@ def measure_computation_cost(computation_time: np.ndarray) -> np.ndarray:
     beta3 = 1e-6
     # Assume the IoT device needs 600x more time compared to GPUs
     iot_speed_ratio = 600
-    comp_cost = beta3 * computation_time * iot_speed_ratio
+    if isinstance(computation_time, np.ndarray):
+        comp_cost = beta3 * computation_time * iot_speed_ratio
+    elif isinstance(computation_time, list):
+        comp_cost = [beta3 * time * iot_speed_ratio for time in computation_time]
+    elif isinstance(computation_time, float):
+        comp_cost = beta3 * computation_time * iot_speed_ratio
     logger.log(logging.INFO, f"Computation cost: {comp_cost}")
     return comp_cost
 

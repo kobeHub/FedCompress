@@ -168,10 +168,10 @@ class _Server(fl.server.Server):
 			# Measure communication/computation cost
 			# Skip the initial evaluation
 			if 'computation_time' in config.keys():
-				results["commu_costs"], results["avg_comm_cost"] = costs.measure_communication_cost(results['model_size'], 
-															   results['model_size'], self.num_clients)
 				results["comp_costs"] = costs.measure_computation_cost(config['computation_times'])
 				results["avg_comp_cost"] = costs.measure_computation_cost(config['computation_time'])
+				results["commu_costs"], results["avg_comm_cost"] = costs.measure_communication_cost(results['model_size'], 
+															   results['model_size'], self.num_clients)
 				results["avg_total_cost"] = results["avg_commu_cost"] + results["avg_comp_cost"]
 				results["cost_efficiency"] = costs.cost_efficiency(results["avg_total_cost"], results["accuracy"])
 
