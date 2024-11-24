@@ -58,13 +58,16 @@ class FedCustom(fl.server.strategy.fedavg.FedAvg):
             )
         return parameters_aggregated, metrics_aggregated
 
-    """Evaluate model parameters using an evaluation function."""
+    """Evaluate model parameters using an evaluation function. Centralized evaluation."""
 
     def evaluate(self, server_round, parameters):
+        # self.evaluate_fn is a function that is defined 
+        # at L148 server.py
         if self.evaluate_fn is None:
             # No evaluation function provided
             return None
         parameters_ndarrays = fl.common.parameters_to_ndarrays(parameters)
+        # TODO: Get the comm, comp costs
         eval_res, new_parameters = self.evaluate_fn(
             server_round, parameters_ndarrays, config=self.train_metrics_aggregated
         )

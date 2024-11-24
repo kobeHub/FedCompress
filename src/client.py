@@ -2,6 +2,7 @@ import flwr as fl
 import tensorflow as tf
 import compress
 import utils
+import time
 
 class _Client(fl.client.NumPyClient):
 
@@ -40,6 +41,9 @@ class _Client(fl.client.NumPyClient):
 
 		# Set parameters
 		self.set_parameters(parameters, config)
+		
+		# Record training start time
+		start_time = time.time()
 
 		# Perform standard local update step
 		if config['epochs'] != 0:
@@ -55,10 +59,16 @@ class _Client(fl.client.NumPyClient):
 				learning_rate=config['compression_lr'],
 			)
 			print(f"[Client {self.cid}] - Compr. Accurary: {float(h.history['accuracy'][-1]):0.4f} (Clusters: {config['num_clusters']}).")
+		
+		# Record training end time
+		end_time = time.time()
+		computation_time = end_time - start_time
+
 		# Store results
 		results['model_size'] = utils.get_gzipped_model_size_from_model(self.model)
 		results['train_loss'] = float(h.history['loss'][-1])
 		results['train_accuracy'] = float(h.history['accuracy'][-1])
+		results['computation_time'] = computation_time
 
 		# Measure validation accuracy for elbow method.
 		metrics = self.model.evaluate(self.val_data,verbose=0)

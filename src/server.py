@@ -5,8 +5,26 @@ import compress
 import strategy
 import utils
 import pandas as pd
+import costs
+import numpy as np
 
 class _Server(fl.server.Server):
+	"""
+	Args:
+	method (str): Method to use, one of `fedavg`, `fedcompress`, `client`.
+	model_loader (function): Function to load model.
+	data_loader (function): Function to load data, a dict of {dataset: load_function}
+	num_rounds (int): Number of federated rounds to run.
+	run_id (int): Unique id of experiment.
+	num_clients (int): Number of clients.
+	participation (float): Participation percentage of clients in each round.
+	init_model_fp (str): File path to initial model.
+	model_save_dir_fn (function): Function to generate model save file path.
+	server_compression (bool): Enable server-side compression.
+	client_compression (bool): Enable client-side compression.
+	server_compression_config (dict): Server-side compression configuration.
+	cluser_search_config (dict): Cluster search configuration.
+	"""
 
 	def __init__(self, method, model_loader, data_loader, num_rounds, run_id=0,
 			num_clients=10, participation=1.0,
@@ -91,11 +109,13 @@ class _Server(fl.server.Server):
 	" Set server-side model aggregation strategy. "
 	def set_strategy(self, *_):
 		self.strategy = strategy.FedCustom(
+			# Client number and participation
 			min_available_clients=self.num_clients,
 			fraction_fit=self.participation,
 			min_fit_clients=int(self.participation*self.num_clients),
 			fraction_evaluate=0.0,
 			min_evaluate_clients=0,
+			# Evaluation function
 			evaluate_fn=self.get_evaluation_fn(),
 			on_fit_config_fn=self.get_client_config_fn(),
 			initial_parameters=self.get_initial_parameters(),
@@ -112,8 +132,10 @@ class _Server(fl.server.Server):
 
 	" Set model parameters"
 	def set_parameters(self, parameters, config={}):
+		# Lazy model loading
 		if not hasattr(self, 'model'):
 			self.model = self.model_loader(input_shape=self.input_shape[1:],num_classes=self.num_classes)
+		# Specific loss, metrics and optimizer with compile
 		self.model.compile(metrics=[tf.keras.metrics.SparseCategoricalAccuracy(name='accuracy')])
 		if parameters is not None:
 			self.model.set_weights(parameters)
@@ -138,15 +160,28 @@ class _Server(fl.server.Server):
 			self.set_parameters(parameters, config)
 
 			# Centralized evaluation
+			# Keras model builtin evaluation method
 			metrics = self.model.evaluate(self.data, verbose=0)
 			results['model_size'] = utils.get_gzipped_model_size_from_model(self.model)
 			results["accuracy"] = metrics[1]
+			
+			# Measure communication/computation cost
+			results["commu_costs"], results["avg_comm_cost"] = costs.measure_communication_cost(results['model_size'], 
+														   results['model_size'], self.num_clients)
+			results["comp_cost"] = costs.measure_computation_cost(config['computation_time'])
+			results["total_cost"] = results["commu_costs"] + results["comp_cost"]
+			results["cost_efficiency"] = costs.cost_efficiency(results["total_cost"], results["accuracy"])
+
 			if self._is_final_round(rnd):
 				model_save_dir = self.model_save_dir_fn(False, self.method)
 				print(f"[Server] - Saving model to {model_save_dir} at final round")
 				self.model.save(model_save_dir, include_optimizer=False)
 			print(f"[Server] - Round {rnd}: For {self.num_clusters} clusters, accuracy {metrics[1]:0.4f} " +
-				f"(Val. Accuracy: {results['val_accuracy'] if 'val_accuracy' in results.keys() else 0.0 :0.4f}).")
+				f"(Val. Accuracy: {results['val_accuracy'] if 'val_accuracy' in results.keys() else 0.0 :0.4f})."
+				f" Avg computation time: {results['computation_time']:0.4f}, Avg computation cost: {results['comp_cost']:0.4f},"
+				f" Avg communication cost: {results['avg_comm_cost']:0.4f}, Total cost: {results['total_cost']:0.4f},"
+				f" Cost efficiency: {results['cost_efficiency']:0.4f}.")
+	
 
 			# Update best-seen performance (BEFORE setting number of clusters!)
 			self.set_performance(results)

@@ -111,6 +111,12 @@ def weighted_average_train_metrics(metrics):
         results["odd_score"] = compute_score(
             np.concatenate([m["odd_embeddings"] for _, m in metrics], axis=0)
         )
+    # Compute average computation time for all clients per round 
+    if all("computation_time" in keys for keys in metrics_keys):
+        results["computation_times"] = [m["computation_time"] for _, m in metrics]
+        results["computation_time"] = sum(results["computation_times"]) / len(
+            results["computation_times"]
+        )
     return results
 
 
@@ -118,6 +124,8 @@ def weighted_average_train_metrics(metrics):
 
 
 def set_train_metrics(config={}):
+    # TODO: Extract the communication and computation costs
+    
     results = {}
     # Store metrics names
     config_keys = list(config.keys())
@@ -311,6 +319,8 @@ def store_history(history, args, store_dir_fn=None, score_files=None):
     for key in data.keys():
         if key in ["rnd", "loss"]:
             break
+        if key in ["commu_costs", "comp_cost", "total_cost", "cost_efficiency"]:
+            print(f"Key: {key}, data: {data[key]}")
         data[key] = list(zip(*data[key]))[1][(1 if key in exceptions else 0) :]
 
     # Add scores

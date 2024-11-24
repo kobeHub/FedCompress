@@ -32,7 +32,7 @@ class Params:
     cluster_limit = 1
     cluster_step = 1
     # Federated params
-    num_rounds: int = 20
+    num_rounds: int = 1 # TODO
     num_clients: int = 10
     participation: float = 1.0
     cpu_usage: float = 1.0

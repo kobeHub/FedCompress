@@ -31,10 +31,6 @@ def main(argv):
     df = pd.DataFrame(data)
     print(f"Columns: {df.columns}")
 
-        
-    
-    
-
 if __name__ == '__main__':
     app.run(main)
 
