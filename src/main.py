@@ -187,7 +187,8 @@ model_save_dir_fn = lambda x, y: os.path.abspath(
 store_dir_fn = lambda x: os.path.abspath(
     os.path.join(
         args.results_dir,
-        f"{args.model_name}_{args.dataset}_{args.server_compression}_{args.client_compression}_{x[0]}_{args.random_id}.{x[1]}",
+        # x[0], file name; x[1]: method; x[2]: extension
+        f"{args.model_name}_{args.dataset}_{args.server_compression}_{args.client_compression}_{x[0]}_{args.random_id}_{x[1]}.{x[2]}",
     )
 )
 

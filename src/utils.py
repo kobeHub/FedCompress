@@ -343,10 +343,10 @@ def store_history(history, args, store_dir_fn=None, score_files=None):
 
     if store_dir_fn is not None:
         # Store results
-        df.to_pickle(store_dir_fn(("metrics", "pkl")))
+        df.to_pickle(store_dir_fn(("metrics", args.method, "pkl")))
         pickle.dump(
             args,
-            open(store_dir_fn(("args", "pkl")), "wb"),
+            open(store_dir_fn(("args", args.method, "pkl")), "wb"),
             protocol=pickle.HIGHEST_PROTOCOL,
         )
 

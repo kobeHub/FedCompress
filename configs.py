@@ -36,7 +36,7 @@ class Params:
     num_clients: int = 10
     participation: float = 1.0
     cpu_usage: float = 1.0
-    gpu_usage: float = 0.08
+    gpu_usage: float = 0.2
     seed: int = 0
     # Logging params
     random_id: str = str(uuid.uuid4())[-10:]
