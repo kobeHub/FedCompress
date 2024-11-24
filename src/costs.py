@@ -29,12 +29,12 @@ def measure_communication_cost(downlink_size: int, uplink_size: int, num_clients
     return comm_cost, avg_comm_cost
     
 
-def measure_computation_cost(comptation_time: float) -> float:
+def measure_computation_cost(computation_time: np.ndarray) -> np.ndarray:
     # Assume the cost of computation is 1e-6 J/flop
     beta3 = 1e-6
     # Assume the IoT device needs 600x more time compared to GPUs
     iot_speed_ratio = 600
-    comp_cost = beta3 * comptation_time * iot_speed_ratio
+    comp_cost = beta3 * computation_time * iot_speed_ratio
     logger.log(logging.INFO, f"Computation cost: {comp_cost}")
     return comp_cost
 

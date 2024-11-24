@@ -166,12 +166,14 @@ class _Server(fl.server.Server):
 			results["accuracy"] = metrics[1]
 			
 			# Measure communication/computation cost
+			# Skip the initial evaluation
 			if 'computation_time' in config.keys():
 				results["commu_costs"], results["avg_comm_cost"] = costs.measure_communication_cost(results['model_size'], 
 															   results['model_size'], self.num_clients)
-				results["comp_cost"] = costs.measure_computation_cost(config['computation_time'])
-				results["total_cost"] = results["commu_costs"] + results["comp_cost"]
-				results["cost_efficiency"] = costs.cost_efficiency(results["total_cost"], results["accuracy"])
+				results["comp_costs"] = costs.measure_computation_cost(config['computation_times'])
+				results["avg_comp_cost"] = costs.measure_computation_cost(config['computation_time'])
+				results["avg_total_cost"] = results["avg_commu_cost"] + results["avg_comp_cost"]
+				results["cost_efficiency"] = costs.cost_efficiency(results["avg_total_cost"], results["accuracy"])
 
 			if self._is_final_round(rnd):
 				model_save_dir = self.model_save_dir_fn(False, self.method)
@@ -179,9 +181,10 @@ class _Server(fl.server.Server):
 				self.model.save(model_save_dir, include_optimizer=False)
 			print(f"[Server] - Round {rnd}: For {self.num_clusters} clusters, accuracy {metrics[1]:0.4f} " +
 				f"(Val. Accuracy: {results['val_accuracy'] if 'val_accuracy' in results.keys() else 0.0 :0.4f}).")
+			# Skip the initial evaluation
 			if 'computation_time' in config.keys():	
-				print(f" Avg computation time: {config['computation_time']:0.4f}, Avg computation cost: {results['comp_cost']:0.4f},"
-				f" Avg communication cost: {results['avg_comm_cost']:0.4f}, Total cost: {results['total_cost']:0.4f},"
+				print(f" Avg computation time: {results['comp_costs']:0.4f}, Avg computation cost: {results['avg_comp_cost']:0.4f},"
+				f" Avg communication cost: {results['avg_comm_cost']:0.4f}, Avg total cost: {results['avg_total_cost']:0.4f},"
 				f" Cost efficiency: {results['cost_efficiency']:0.4f}.")
 	
 
