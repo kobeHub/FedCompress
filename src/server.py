@@ -8,9 +8,9 @@ import pandas as pd
 
 class _Server(fl.server.Server):
 
-	def __init__(self, model_loader, data_loader, num_rounds, run_id=0,
+	def __init__(self, method, model_loader, data_loader, num_rounds, run_id=0,
 			num_clients=10, participation=1.0,
-			init_model_fp=None, model_save_dir='./',
+			init_model_fp=None, model_save_dir_fn=None,
 			server_compression=True, client_compression = False,
 			server_compression_config={"compression_step":1, "learning_rate":1e-4, "epochs":10},
 			cluster_search_config = {
@@ -20,6 +20,7 @@ class _Server(fl.server.Server):
 			clients_config={"learning_rate":1e-4, "epochs":1},
 			log_level=logging.INFO,
 		):
+		self.method = method
 		self.run_id = run_id
 		(self.data, self.valid_data), self.num_classes, self.num_samples = data_loader(return_eval_ds=True)
 		self.model_loader = model_loader
@@ -32,7 +33,7 @@ class _Server(fl.server.Server):
 		self._client_manager = fl.server.client_manager.SimpleClientManager()
 		self.max_workers = None
 		self.num_rounds = num_rounds
-		self.model_save_dir = model_save_dir
+		self.model_save_dir_fn = model_save_dir_fn
 		logging.getLogger("flower").setLevel(log_level)
 
 		# Self-compress parameters
@@ -141,7 +142,9 @@ class _Server(fl.server.Server):
 			results['model_size'] = utils.get_gzipped_model_size_from_model(self.model)
 			results["accuracy"] = metrics[1]
 			if self._is_final_round(rnd):
-				self.model.save(self.model_save_dir(False), include_optimizer=False)
+				model_save_dir = self.model_save_dir_fn(False, self.method)
+				print(f"[Server] - Saving model to {model_save_dir} at final round")
+				self.model.save(model_save_dir, include_optimizer=False)
 			print(f"[Server] - Round {rnd}: For {self.num_clusters} clusters, accuracy {metrics[1]:0.4f} " +
 				f"(Val. Accuracy: {results['val_accuracy'] if 'val_accuracy' in results.keys() else 0.0 :0.4f}).")
 
@@ -169,7 +172,7 @@ class _Server(fl.server.Server):
 					results['compressed_accuracy'] = metrics[1]
 
 					if self._is_final_round(rnd):
-						self.model.save(self.model_save_dir(True), include_optimizer=False)
+						self.model.save(self.model_save_dir_fn(True, self.method), include_optimizer=False)
 
 			print(f"[Server] - Round {rnd}: Next training round will be executed with {self.num_clusters} clusters (Compression {results['compression']}).")
 			return (metrics[0], results), self.get_parameters()

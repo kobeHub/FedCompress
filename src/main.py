@@ -8,6 +8,7 @@ import tensorflow as tf
 import network
 
 parser = argparse.ArgumentParser(description="Federated Model Compression")
+parser.add_argument("--method", default="fedcompress", type=str, help="method to use")
 parser.add_argument(
     "--random_id", default="0a6809e9cb", type=str, help="unique id of experiment"
 )
@@ -177,10 +178,10 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-model_save_dir_fn = lambda x: os.path.abspath(
+model_save_dir_fn = lambda x, y: os.path.abspath(
     os.path.join(
         args.model_dir,
-        f"{args.model_name}_{args.dataset}_{args.server_compression}_{args.client_compression}_{x}_{args.random_id}.h5",
+        f"{args.model_name}_{args.dataset}_{args.server_compression}_{args.client_compression}_{x}_{args.random_id}_{y}.h5",
     )
 )
 store_dir_fn = lambda x: os.path.abspath(
@@ -253,6 +254,7 @@ def create_server(run_id=0):
     from server import _Server
 
     return _Server(
+        method=args.method,
         run_id=run_id,
         num_rounds=args.rounds,
         num_clients=args.clients,
@@ -260,7 +262,7 @@ def create_server(run_id=0):
         model_loader=network.get_model(args.model_name),
         data_loader=utils.create_dataloader_fn()[args.dataset],
         init_model_fp=args.init_model_fp,
-        model_save_dir=model_save_dir_fn,
+        model_save_dir_fn=model_save_dir_fn,
         clients_config=get_clients_config(),
         # Compression parameters
         server_compression=args.server_compression,
