@@ -1,5 +1,6 @@
 import numpy as np
-
+from flwr.common import logger
+import logging
 
 def measure_communication_cost(downlink_size: int, uplink_size: int, num_clients: int) -> int:
     beta1 = 1e-8 # cost of processing 1 bit of data, 1e-8 J/bit
@@ -19,12 +20,12 @@ def measure_communication_cost(downlink_size: int, uplink_size: int, num_clients
 
     # Calculate the distance from each client to the server at the origin
     client_distances = np.sqrt(x_coords**2 + y_coords**2)
-    print(f"Clients distances: {client_distances}")
+    logger.log(logging.INFO, f"Clients distances: {client_distances}")
     
     sending_ery_per_bit = beta1 + beta2 * client_distances**alpha
     comm_cost = beta1 * uplink_size + sending_ery_per_bit * downlink_size
     avg_comm_cost = np.sum(comm_cost) / num_clients
-    print(f"Communication cost: {comm_cost}, avg_comm_cost: {avg_comm_cost}")
+    logger.log(logging.INFO, f"Communication cost: {comm_cost}, avg_comm_cost: {avg_comm_cost}")
     return comm_cost, avg_comm_cost
     
 
@@ -32,7 +33,7 @@ def measure_computation_cost(comptation_time: float) -> float:
     # Assume the cost of computation is 1e-6 J/flop
     beta3 = 1e-6
     comp_cost = beta3 * comptation_time
-    print(f"Computation cost: {comp_cost}")
+    logger.log(logging.INFO, f"Computation cost: {comp_cost}")
     return comp_cost
 
 

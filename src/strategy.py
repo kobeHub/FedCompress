@@ -52,6 +52,7 @@ class FedCustom(fl.server.strategy.fedavg.FedAvg):
             fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
             metrics_aggregated = self.fit_metrics_aggregation_fn(fit_metrics)
             self.train_metrics_aggregated = metrics_aggregated
+            fl.common.logger.log(logging.INFO, f"Metrics aggregated: {metrics_aggregated}")
         elif server_round == 1:  # Only log this warning once
             fl.common.logger.log(
                 logging.WARNING, "No fit_metrics_aggregation_fn provided"
