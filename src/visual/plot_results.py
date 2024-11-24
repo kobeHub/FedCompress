@@ -30,6 +30,7 @@ def main(argv):
         return
     df = pd.DataFrame(data)
     print(f"Columns: {df.columns}")
+    print(f"Metrics: {df['cost_efficiency']}]")
 
 if __name__ == '__main__':
     app.run(main)
