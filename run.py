@@ -24,7 +24,7 @@ def main(args):
 			params = Params(method=method, dataset=dataset, num_rounds=rnds[dataset])
 
 			call_cmd = ["python3", "./src/main.py",
-			   "--methid", method,
+			   "--method", method,
 				"--random_id", params.random_id,
 				"--rounds", str(params.num_rounds),
 				"--clients",str(params.num_clients),
