@@ -1,8 +1,9 @@
 import numpy as np
 from flwr.common import logger
 import logging
+from typing import List, Tuple
 
-def measure_communication_cost(downlink_size: int, uplink_size: int, num_clients: int) -> int:
+def measure_communication_cost(downlink_size: int, uplink_size: int, num_clients: int) -> Tuple[List[int], int]:
     beta1 = 1e-8 # cost of processing 1 bit of data, 1e-8 J/bit
     beta2 = 1e-10 # cost of transferring 1 bit of data, 1e-10 J/bit/m^3
     alpha = 3 # path loss exponent
@@ -26,7 +27,7 @@ def measure_communication_cost(downlink_size: int, uplink_size: int, num_clients
     comm_cost = beta1 * uplink_size + sending_ery_per_bit * downlink_size
     avg_comm_cost = np.sum(comm_cost) / num_clients
     logger.log(logging.INFO, f"Communication cost: {comm_cost}, avg_comm_cost: {avg_comm_cost}")
-    return comm_cost, avg_comm_cost
+    return comm_cost.tolist(), avg_comm_cost
     
 
 def measure_computation_cost(computation_time: np.ndarray) -> np.ndarray:
