@@ -170,7 +170,7 @@ class _Server(fl.server.Server):
 			if 'computation_time' in config.keys():
 				results["comp_costs"] = costs.measure_computation_cost(config['computation_times'])
 				results["avg_comp_cost"] = costs.measure_computation_cost(config['computation_time'])
-				results["commu_costs"], results["avg_comm_cost"] = costs.measure_communication_cost(results['model_size'], 
+				results["commu_costs"], results["avg_commu_cost"] = costs.measure_communication_cost(results['model_size'], 
 															   results['model_size'], self.num_clients)
 				results["avg_total_cost"] = results["avg_commu_cost"] + results["avg_comp_cost"]
 				results["cost_efficiency"] = costs.cost_efficiency(results["avg_total_cost"], results["accuracy"])
@@ -184,7 +184,7 @@ class _Server(fl.server.Server):
 			# Skip the initial evaluation
 			if 'computation_time' in config.keys():	
 				print(f" Avg computation time: {results['comp_costs']:0.4f}, Avg computation cost: {results['avg_comp_cost']:0.4f},"
-				f" Avg communication cost: {results['avg_comm_cost']:0.4f}, Avg total cost: {results['avg_total_cost']:0.4f},"
+				f" Avg communication cost: {results['avg_commu_cost']:0.4f}, Avg total cost: {results['avg_total_cost']:0.4f},"
 				f" Cost efficiency: {results['cost_efficiency']:0.4f}.")
 	
 
