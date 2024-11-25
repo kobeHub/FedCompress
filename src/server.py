@@ -90,6 +90,7 @@ class _Server(fl.server.Server):
 						patience=self.cluster_search_config["patience"],
 						limit=self.cluster_search_config["limit"]/100,)
 
+				# Dynamic adjustment of number of clusters
 				if flag: self.num_clusters+=self.cluster_search_config["cluster_update_step"]
 				print(f"[Server] - Best Score: {max(self.compression_metric_dict[self.compression_metric]):0.4f}, Current Score: {metric:0.4f}, Flag: {flag}.")
 				return flag
@@ -135,6 +136,7 @@ class _Server(fl.server.Server):
 		# Lazy model loading
 		if not hasattr(self, 'model'):
 			self.model = self.model_loader(input_shape=self.input_shape[1:],num_classes=self.num_classes)
+			self.model.summary()
 		# Specific loss, metrics and optimizer with compile
 		self.model.compile(metrics=[tf.keras.metrics.SparseCategoricalAccuracy(name='accuracy')])
 		if parameters is not None:
@@ -221,6 +223,7 @@ class _Server(fl.server.Server):
 	" Get clients fit configuration function."
 	def get_client_config_fn(self):
 		def get_on_fit_config_fn(rnd):
+			# The dict is the same as L196, main.py
 			self.clients_config["round"] = rnd
 			self.clients_config["num_clusters"] = self.num_clusters
 			return self.clients_config

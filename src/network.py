@@ -1,7 +1,7 @@
-
-def get_resnet20_network(input_shape=(32,32,3), num_classes=10, weights_dir=None):
+def get_resnet20_network(input_shape=(32,32,3), num_classes=10, weights_dir=None, early_exit_points=None):
 	from architectures import Resnets
-	return Resnets.resnet20(input_shape=input_shape, num_classes=num_classes, weights_dir=weights_dir)
+	return Resnets.resnet20(input_shape=input_shape, num_classes=num_classes, 
+						 weights_dir=weights_dir, early_exit_points=early_exit_points)
 
 def get_yamnet_network(input_shape=(None,40,1), num_classes=10, weights_dir=None):
 	from architectures import YAMNet

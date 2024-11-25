@@ -14,6 +14,7 @@ class FedCustom(fl.server.strategy.fedavg.FedAvg):
     def configure_fit(self, server_round, parameters, client_manager):
         config = {}
         if self.on_fit_config_fn is not None:  # Custom fit config function provided
+            # on_fit_config_fn is a function that is defined at Line 102, server.py 
             config = self.on_fit_config_fn(server_round)
         if self.parameters is not None:
             parameters = self.parameters

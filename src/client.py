@@ -36,6 +36,8 @@ class _Client(fl.client.NumPyClient):
 		""" Get model weights """
 		return self.model.get_weights()
 
+	# The parameters and config are received from the server
+	# strategy.py Line 20, FitIns
 	def fit(self, parameters, config):
 		results = {}
 
@@ -55,6 +57,7 @@ class _Client(fl.client.NumPyClient):
 			self.model, h = compress.self_compress_with_data(model=self.model,
                 data=self.data,
                 epochs=config['compression_epochs'],
+				# num_clusters is from cluster_search_config in serer.py, L218 in main.py 
 				nb_clusters=config['num_clusters'],
 				learning_rate=config['compression_lr'],
 			)
