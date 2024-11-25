@@ -9,6 +9,15 @@ class PadLayer(tf.keras.layers.Layer):
     def call(self, x):
         return tf.pad(tf.keras.layers.MaxPool2D(1, self.stride)(x) if self.stride>1 else x,
                       paddings=[(0, 0), (0, 0), (0, 0), (0, self.filters - x.shape[-1])])
+        
+    def get_config(self):
+        # Add stride and filters to the config dictionary
+        config = super(PadLayer, self).get_config()
+        config.update({
+            "stride": self.stride,
+            "filters": self.filters,
+        })
+        return config
 
 def early_exit_branch(x, num_classes, name=None):
     # Add a convolutional block
