@@ -297,14 +297,10 @@ def get_gzipped_model_size(file):
     return os.path.getsize(zipped_file) / 1000
 
 
-def get_gzipped_model_size_from_model(model, use_tf=True):
+def get_gzipped_model_size_from_model(model):
     with contextlib.redirect_stdout(None):
-        if use_tf:
-            _, file = tempfile.mkstemp()
-            model.save(file, include_optimizer=False, format="tf")
-        else:
-            _, file = tempfile.mkstemp(".h5")
-            model.save(file, include_optimizer=False)
+        _, file = tempfile.mkstemp(".h5")
+        model.save(file, include_optimizer=False)
         _, zipped_file = tempfile.mkstemp(".zip")
         with zipfile.ZipFile(zipped_file, "w", compression=zipfile.ZIP_DEFLATED) as f:
             f.write(file)

@@ -73,7 +73,7 @@ class _Client(fl.client.NumPyClient):
 		computation_time = end_time - start_time
 
 		# Store results
-		results['model_size'] = utils.get_gzipped_model_size_from_model(self.model, self.use_ee)
+		results['model_size'] = utils.get_gzipped_model_size_from_model(self.model)
 		results['train_loss'] = float(h.history['loss'][-1])
 		results['train_accuracy'] = float(h.history['accuracy'][-1])
 		results['computation_time'] = computation_time

@@ -176,15 +176,15 @@ class ResNetEE(tf.keras.Model):
         self.bb_layers.append(self.global_pool)
         self.fc = tf.keras.layers.Dense(n_classes, kernel_regularizer=tf.keras.regularizers.l2(self.l2_reg), name='main_output')
         self.bb_layers.append(self.fc)
-        print("Common layers:")
-        for layer in self.common_layers:
-            print(f"  {layer.name}")
-        print("Early exit layers:")
-        for layer in self.ee_layers:
-            print(f"  {layer.name}")
-        print("Backbone layers:")
-        for layer in self.bb_layers:
-            print(f"  {layer.name}")
+        # print("Common layers:")
+        # for layer in self.common_layers:
+        #     print(f"  {layer.name}")
+        # print("Early exit layers:")
+        # for layer in self.ee_layers:
+        #     print(f"  {layer.name}")
+        # print("Backbone layers:")
+        # for layer in self.bb_layers:
+        #     print(f"  {layer.name}")
 
     def collect_trainable_vars(self):
          # Collect trainable variables
@@ -319,8 +319,9 @@ class ResNetEE(tf.keras.Model):
                     first_conv={"filters": 16, "kernel_size": 3, "strides": 1}, shortcut_type=shortcut_type,
                     block_type=block_type, preact_shortcuts=False, name=name, 
                     ee_location=ee_location, ee_threshold=ee_threshold)
-        dummy_inputs = tf.random.uniform((1, 32, 32, 3))
-        model(dummy_inputs, training=True)
+        inputs = tf.keras.Input(shape=input_shape)
+        outputs = model(inputs)
+        model = tf.keras.Model(inputs, outputs, name=name)
         if weights_dir is not None:
             model.load_weights(weights_dir).expect_partial()
         return model
