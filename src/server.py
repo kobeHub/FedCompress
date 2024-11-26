@@ -37,6 +37,7 @@ class _Server(fl.server.Server):
 			},
 			clients_config={"learning_rate":1e-4, "epochs":1},
 			log_level=logging.INFO,
+			ee_config={},
 		):
 		self.method = method
 		self.run_id = run_id
@@ -52,6 +53,7 @@ class _Server(fl.server.Server):
 		self.max_workers = None
 		self.num_rounds = num_rounds
 		self.model_save_dir_fn = model_save_dir_fn
+		self.ee_config = ee_config
 		logging.getLogger("flower").setLevel(log_level)
 
 		# Self-compress parameters
@@ -130,12 +132,18 @@ class _Server(fl.server.Server):
 	" Get model parameters. "
 	def get_parameters(self, config={}):
 		return self.model.get_weights()
+	
+	def get_model(self):
+		ee_location = self.ee_config['ee_location'] if 'ee_location' in self.ee_config.keys() else None
+		ee_threshold = self.ee_config['ee_threshold'] if 'ee_threshold' in self.ee_config.keys() else None	
+		return self.model_loader(input_shape=self.input_shape[1:],num_classes=self.num_classes, 
+						   ee_location=ee_location, ee_threshold=ee_threshold)
 
 	" Set model parameters"
 	def set_parameters(self, parameters, config={}):
 		# Lazy model loading
 		if not hasattr(self, 'model'):
-			self.model = self.model_loader(input_shape=self.input_shape[1:],num_classes=self.num_classes)
+			self.model = self.get_model()
 			self.model.summary()
 		# Specific loss, metrics and optimizer with compile
 		self.model.compile(metrics=[tf.keras.metrics.SparseCategoricalAccuracy(name='accuracy')])
@@ -147,7 +155,7 @@ class _Server(fl.server.Server):
 		if self.init_model_fp is not None:
 			self.init_weights = tf.keras.models.load_model(self.init_model_fp, compile=False).get_weights()
 		else:
-			self.init_weights = self.model_loader(input_shape=self.input_shape[1:], num_classes=self.num_classes).get_weights()
+			self.init_weights = self.get_model().get_weights() 
 		return fl.common.ndarrays_to_parameters(self.init_weights)
 
 	" Get evaluation function to perform server-side evalation."
@@ -203,6 +211,7 @@ class _Server(fl.server.Server):
 						model_loader=self.model_loader,
 						data_loader=self.server_compression_config['data_loader'],
 						data_shape=self.data.element_spec[0].shape,
+						ee_config=self.ee_config,
 						nb_clusters=self.num_clusters,
 						epochs=self._num_compression_epochs(rnd),
 						batch_size=self.server_compression_config['batch_size'],

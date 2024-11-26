@@ -11,14 +11,16 @@ from time import sleep
 " Compute embedding from GMP layer."
 
 
-def compute_embeddings(model_loader, data, num_classes, weights):
+def compute_embeddings(model_loader, data, num_classes, weights, ee_config):
     import tensorflow as tf
 
     # Need to create a new model to avoid errors.
+    ee_location = ee_config['ee_location'] if 'ee_location' in ee_config.keys() else None
+    ee_threshold = ee_config['ee_threshold'] if 'ee_threshold' in ee_config.keys() else None	
     model = model_loader(
-        input_shape=data.element_spec[0].shape[1:], num_classes=num_classes
-    )
+        input_shape=data.element_spec[0].shape[1:], num_classes=num_classes, ee_location=ee_location, ee_threshold=ee_threshold)
     model.set_weights(weights)
+
     # Set new model up to 'GMP_layer'.
     new_model = tf.keras.Model(
         inputs=model.input, outputs=model.get_layer("GMP_layer").output

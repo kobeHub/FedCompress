@@ -19,20 +19,6 @@ class PadLayer(tf.keras.layers.Layer):
         })
         return config
 
-def early_exit_branch(x, num_classes, name=None):
-    # Add a convolutional block
-    x = tf.keras.layers.Conv2D(filters=16, kernel_size=3, padding='same', activation='relu')(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.MaxPooling2D(pool_size=2)(x)
-    
-    # # Add the classifier
-    x = tf.keras.layers.Flatten()(x)
-    # x = tf.keras.layers.Dense(128, activation='relu')(x)
-    # x = tf.keras.layers.Dense(num_classes, activation='softmax', name=name)(x)
-    # x = tf.keras.layers.GlobalAveragePooling2D(name=f'GMP_layer_{name}')(x)
-    x = tf.keras.layers.Dense(num_classes, activation='softmax', name=name)(x)
-
-    return x
 
 def regularized_padded_conv(*args, **kwargs):
     return tf.keras.layers.Conv2D(*args, **kwargs, padding='same', kernel_regularizer=_regularizer,
@@ -51,8 +37,6 @@ def shortcut(x, filters, stride, mode):
         x = regularized_padded_conv(filters, 1, strides=stride)(x)
         return tf.keras.layers.BatchNormalization()(x)
     elif mode == 'A':
-        # return tf.pad(tf.keras.layers.MaxPool2D(1, stride)(x) if stride>1 else x,
-        #     paddings=[(0, 0), (0, 0), (0, 0), (0, filters - x.shape[-1])])
         return PadLayer(stride, filters)(x)
     else:
         raise KeyError("Parameter shortcut_type not recognized!")
@@ -87,31 +71,25 @@ def bootleneck_block(x, filters, stride=1, preact_block=False):
     x = shortcut(x, filters, stride, mode=_shortcut_type)
     return x + c3
 
-def group_of_blocks(x, block_type, num_blocks, filters, stride, block_idx=0, early_exit_points=None):
-    global _preact_shortcuts, _n_classes
+def group_of_blocks(x, block_type, num_blocks, filters, stride, block_idx=0):
+    global _preact_shortcuts
     preact_block = True if _preact_shortcuts or block_idx == 0 else False
-    early_exists = []
-    for i in range(num_blocks):
-        x = block_type(x, filters, stride if i == 0 else 1, preact_block=(preact_block if i == 0 else False)) 
-        
-        # Add an early exit point
-        if early_exit_points is not None and (block_idx, i) in early_exit_points:
-            early_output = early_exit_branch(x, _n_classes, name=f'early_exit_{block_idx}_{i}')
-            early_exists.append(early_output)
-    return x, early_exists
+    x = block_type(x, filters, stride, preact_block=preact_block)
+    for i in range(num_blocks-1):
+        x = block_type(x, filters)
+    return x
 
 def Resnet(input_shape, n_classes, l2_reg=1e-4, group_sizes=(2, 2, 2), features=(16, 32, 64), strides=(1, 2, 2),
         shortcut_type='B', block_type='preactivated', first_conv={"filters": 16, "kernel_size": 3, "strides": 1},
-        dropout=0, cardinality=1, bootleneck_width=4, preact_shortcuts=True, name='resnet', early_exit_points=None):
+        dropout=0, cardinality=1, bootleneck_width=4, preact_shortcuts=True, name='resnet'):
 
-    global _regularizer, _shortcut_type, _preact_projection, _dropout, _cardinality, _bootleneck_width, _preact_shortcuts, _n_classes
+    global _regularizer, _shortcut_type, _preact_projection, _dropout, _cardinality, _bootleneck_width, _preact_shortcuts
     _bootleneck_width = bootleneck_width
     _regularizer = tf.keras.regularizers.l2(l2_reg)
     _shortcut_type = shortcut_type
     _cardinality = cardinality
     _dropout = dropout
     _preact_shortcuts = preact_shortcuts
-    _n_classes = n_classes
     block_types = {'preactivated': preactivation_block, 'bootleneck': bootleneck_block, 'original': original_block}
 
     selected_block = block_types[block_type]
@@ -120,31 +98,22 @@ def Resnet(input_shape, n_classes, l2_reg=1e-4, group_sizes=(2, 2, 2), features=
 
     if block_type == 'original':
         flow = bn_relu(flow)
-        
-    # To store early exit points
-    early_exists = []
 
     for block_idx, (group_size, feature, stride) in enumerate(zip(group_sizes, features, strides)):
-        flow, exists = group_of_blocks(flow, block_type=selected_block,
+        flow = group_of_blocks(flow, block_type=selected_block,
                     num_blocks=group_size, block_idx=block_idx,
-                    filters=feature, stride=stride, early_exit_points=early_exit_points)
-        early_exists.extend(exists)
-        
+                    filters=feature, stride=stride)
     if block_type != 'original':
         flow = bn_relu(flow)
     flow = tf.keras.layers.GlobalAveragePooling2D(name='GMP_layer')(flow)
     outputs = tf.keras.layers.Dense(n_classes, kernel_regularizer=_regularizer)(flow)
-    
-    # Combine all outputs
-    model_outputs = early_exists + [outputs] if early_exit_points is not None else outputs
-
-    model = tf.keras.Model(inputs=inputs, outputs=model_outputs, name=name)
+    model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
     return model
 
 def resnet20(input_shape=(32,32,3), num_classes=10, weights_dir=None,
-    	block_type='original', shortcut_type='A', l2_reg=1e-4, name="resnet20", early_exit_points=None):
+    	block_type='original', shortcut_type='A', l2_reg=1e-4, name="resnet20"):
 	model = Resnet(input_shape=input_shape, n_classes=num_classes, l2_reg=l2_reg, group_sizes=(3, 3, 3), features=(16, 32, 64),
 		strides=(1, 2, 2), first_conv={"filters": 16, "kernel_size": 3, "strides": 1}, shortcut_type=shortcut_type,
-		block_type=block_type, preact_shortcuts=False, name=name, early_exit_points=early_exit_points)
+		block_type=block_type, preact_shortcuts=False, name=name)
 	if weights_dir is not None: model.load_weights(weights_dir).expect_partial()
 	return model

@@ -6,6 +6,7 @@ data/
 assets/imgs/
 assets/tflogs
 
+.DS_Store
 # C extensions
 *.so
 

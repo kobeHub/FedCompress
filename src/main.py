@@ -176,6 +176,8 @@ parser.add_argument(
     type=float,
     help="temperature for server-side ood weight clustering with KD",
 )
+parser.add_argument("--ee_location", default=[1, 0], type=utils.str2list, help="early exit location")
+parser.add_argument("--ee_threshold", default=0.3, type=float, help="early exit threshold")
 args = parser.parse_args()
 
 model_save_dir_fn = lambda x, y: os.path.abspath(
@@ -226,6 +228,11 @@ def get_cluster_search_config():
         "limit": args.cluster_search_metric_limit,
     }
 
+def get_ee_config():
+    return {
+        "location": args.ee_location,
+        "threshold": args.ee_threshold,
+    }
 
 def create_client(cid):
     import utils
@@ -245,6 +252,7 @@ def create_client(cid):
         batch_size=args.batch_size,
         client_compression=args.client_compression,
         seed=args.seed,
+        ee_config=get_ee_config(),
     )
 
 
@@ -270,6 +278,7 @@ def create_server(run_id=0):
         client_compression=args.client_compression,
         server_compression_config=get_server_compression_config(),
         cluster_search_config=get_cluster_search_config(),
+        ee_config=get_ee_config(),
     )
 
 

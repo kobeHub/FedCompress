@@ -14,10 +14,14 @@ def compress_image_model(model, nb_clusters=50, verbose=True):
 		print(f"Weight clustering with {nb_clusters} clusters", flush=True)
 	return tf.keras.models.clone_model(model, clone_function=functools.partial(_apply_weight_clustering, clustering_params=clustering_params))
 
-def self_compress(model, num_classes, model_loader, data_loader, data_shape=(32,32,3), nb_clusters=30, epochs=5, batch_size=128, learning_rate=1e-4, temperature=2.0, seed=0, verbose=0):
+def self_compress(model, num_classes, model_loader, data_loader, ee_config={}, data_shape=(32,32,3), nb_clusters=30, epochs=5,
+				   batch_size=128, learning_rate=1e-4, temperature=2.0, seed=0, verbose=0):
 	ood_data = data_loader(batch_size=batch_size, seed=seed, reshape_size=data_shape[1:-1])
 	model.trainable = False
-	student = model_loader(input_shape=data_shape[1:], num_classes=num_classes)
+	ee_location = ee_config['ee_location'] if 'ee_location' in ee_config.keys() else None
+	ee_threshold = ee_config['ee_threshold'] if 'ee_threshold' in ee_config.keys() else None	
+	student = model_loader(input_shape=data_shape[1:],num_classes=num_classes, 
+						   ee_location=ee_location, ee_threshold=ee_threshold)
 	student.set_weights(model.get_weights())
 	student_model = compress_image_model(student, nb_clusters=nb_clusters, verbose=False)
 	trainer = distiller.Distiller(student=student_model, teacher=model, has_labels=False)

@@ -6,7 +6,7 @@ import time
 
 class _Client(fl.client.NumPyClient):
 
-	def __init__(self, cid, num_clients, model_loader, data_loader, batch_size, client_compression, seed):
+	def __init__(self, cid, num_clients, model_loader, data_loader, batch_size, client_compression, seed, ee_config):
 		self.cid = cid
 		self.data_loader = data_loader
 		self.num_clients = num_clients
@@ -17,11 +17,15 @@ class _Client(fl.client.NumPyClient):
 		self.input_shape = self.data.element_spec[0].shape
 		self.client_compression = client_compression
 		self.combined_data = False
+		self.ee_config = ee_config
 
 	def set_parameters(self, parameters, config):
 		""" Set model weights """
 		if not hasattr(self, 'model'):
-			self.model = self.model_loader(input_shape=self.input_shape[1:], num_classes=self.num_classes)
+			ee_location = self.ee_config['ee_location'] if 'ee_location' in self.ee_config.keys() else None
+			ee_threshold = self.ee_config['ee_threshold'] if 'ee_threshold' in self.ee_config.keys() else None	
+			self.model = self.model_loader(input_shape=self.input_shape[1:],num_classes=self.num_classes, 
+						   ee_location=ee_location, ee_threshold=ee_threshold)
 
 		self.model.compile(
 			optimizer=tf.keras.optimizers.Adam(learning_rate=config['lr']),
