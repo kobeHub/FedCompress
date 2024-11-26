@@ -48,12 +48,13 @@ class _Server(fl.server.Server):
 		self.clients_config = clients_config
 		self.num_clients = num_clients
 		self.participation = participation
+		self.ee_config = ee_config
+		self.use_ee = 'ee_location' in ee_config.keys()
 		self.set_strategy(self)
 		self._client_manager = fl.server.client_manager.SimpleClientManager()
 		self.max_workers = None
 		self.num_rounds = num_rounds
 		self.model_save_dir_fn = model_save_dir_fn
-		self.ee_config = ee_config
 		logging.getLogger("flower").setLevel(log_level)
 
 		# Self-compress parameters
@@ -173,7 +174,7 @@ class _Server(fl.server.Server):
 			# Centralized evaluation
 			# Keras model builtin evaluation method
 			metrics = self.model.evaluate(self.data, verbose=0)
-			results['model_size'] = utils.get_gzipped_model_size_from_model(self.model)
+			results['model_size'] = utils.get_gzipped_model_size_from_model(self.model, self.use_ee)
 			results["accuracy"] = metrics[1]
 			
 			# Measure communication/computation cost
@@ -220,7 +221,7 @@ class _Server(fl.server.Server):
 						temperature=self.server_compression_config['temperature'],
 						seed=self.server_compression_config['seed'])
 					metrics = self.model.evaluate(self.data, verbose=0)
-					results['compressed_model_size'] = utils.get_gzipped_model_size_from_model(self.model)
+					results['compressed_model_size'] = utils.get_gzipped_model_size_from_model(self.model, self.use_ee)
 					results['compressed_accuracy'] = metrics[1]
 
 					if self._is_final_round(rnd):

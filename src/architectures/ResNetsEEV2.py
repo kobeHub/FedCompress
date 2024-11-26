@@ -125,87 +125,57 @@ class ResNetEE(tf.keras.Model):
         self.ee_location = ee_location
         self.ee_threshold = ee_threshold
 
+        # Big chunks of layers
+        self.common_layers = []
+        self.ee_layers = []
+        self.bb_layers = []
+
         # Initial convolution layer
         self.first_conv = regularized_padded_conv(**self.first_conv_params, l2_reg=self.l2_reg, name='conv_initial')
+        self.common_layers.append(self.first_conv)
         if self.block_type == 'original':
             self.bn1 = tf.keras.layers.BatchNormalization(name='bn_initial')
             self.relu1 = tf.keras.layers.ReLU(name='relu_initial')
+            self.common_layers.extend([self.bn1, self.relu1])
 
-        # Build residual blocks
-        self.blocks = []
-        for block_idx, (group_size, feature, stride) in enumerate(zip(self.group_sizes, self.features, self.strides)):
-            group = self.group_of_blocks(group_size, feature, stride, block_idx)
-            self.blocks.append(group)
+        group_idx_ee, block_idx_ee = self.ee_location
+        # Go through the groups of blocks
+        for group_idx, (group_size, feature, stride) in enumerate(zip(self.group_sizes, self.features, self.strides)):
+            if group_idx < group_idx_ee:
+                # All layers are common
+                _, group = self.group_of_blocks(group_size, feature, stride, group_idx, "common")
+                self.common_layers.append(group)
+            elif group_idx == group_idx_ee:
+                common_layers, bb_layers = self.group_of_blocks(group_size, feature, stride, group_idx, "ee", block_idx_ee)
+                self.common_layers.append(common_layers)
+                # Add ee
+                self.ee_branch = tf.keras.Sequential([
+                        tf.keras.layers.Conv2D(64, kernel_size=3, padding='same', activation='relu',
+                                               kernel_regularizer=tf.keras.regularizers.l2(self.l2_reg),
+                                               name='ee_conv'),
+                        tf.keras.layers.GlobalAveragePooling2D(name='ee_global_pool'),
+                        tf.keras.layers.Dense(n_classes, kernel_regularizer=tf.keras.regularizers.l2(self.l2_reg),
+                                              name='ee_output')
+                    ], name='ee_branch')
+                self.ee_layers.append(self.ee_branch)
+                # Add bb 
+                self.bb_layers.append(bb_layers)                
+            else:
+                _, group = self.group_of_blocks(group_size, feature, stride, group_idx, "bb")
+                self.bb_layers.append(group)
+
 
         # Final batch norm and ReLU
         if self.block_type != 'original':
             self.final_bn = tf.keras.layers.BatchNormalization(name='bn_final')
             self.final_relu = tf.keras.layers.ReLU(name='relu_final')
-
-        # Define early exit layers
-        if self.ee_location is not None:
-            self.ee_branch = tf.keras.Sequential([
-                tf.keras.layers.Conv2D(64, kernel_size=3, padding='same', activation='relu',
-                                       kernel_regularizer=tf.keras.regularizers.l2(self.l2_reg),
-                                       name='ee_conv'),
-                tf.keras.layers.GlobalAveragePooling2D(name='ee_global_pool'),
-                tf.keras.layers.Dense(n_classes, kernel_regularizer=tf.keras.regularizers.l2(self.l2_reg),
-                                      name='ee_output')
-            ], name='ee_branch')
+            self.bb_layers.extend([self.final_bn, self.final_relu])
 
         # Global average pooling and output layer
         self.global_pool = tf.keras.layers.GlobalAveragePooling2D(name='GMP_layer')
+        self.bb_layers.append(self.global_pool)
         self.fc = tf.keras.layers.Dense(n_classes, kernel_regularizer=tf.keras.regularizers.l2(self.l2_reg), name='main_output')
-        self.model_parittion()
-
-    def model_parittion(self):
-        # Record the ee layers and backbone layers
-        # Partition layers into common_layers, ee_layers, and bb_layers
-        self.common_layers = []
-        self.ee_layers = []
-        self.bb_layers = []
-
-        ee_block_idx, ee_layer_idx = self.ee_location
-
-        # Collect common layers
-        self.common_layers.append(self.first_conv)
-        if self.block_type == 'original':
-            self.common_layers.extend([self.bn1, self.relu1])
-
-        # Collect layers up to EE point
-        deleted_block = None
-        for block_idx, block in enumerate(self.blocks):
-            if block_idx < ee_block_idx:
-                self.common_layers.append(block)
-            elif block_idx == ee_block_idx:
-                # Split within the block
-                common_sub_layers = []
-                bb_sub_layers = []
-                common_layer_idxs = []
-                bb_layer_idx = []
-                for layer in block.layers:
-                    if layer.layer_idx <= ee_layer_idx:
-                        common_layer_idxs.append(str(layer.layer_idx))
-                        common_sub_layers.append(layer)
-                    else:
-                        bb_layer_idx.append(str(layer.layer_idx))
-                        bb_sub_layers.append(layer)
-                # Reassign blocks
-                common_suffix = '_'.join(common_layer_idxs)
-                bb_suffix = '_'.join(bb_layer_idx)
-                common_block = tf.keras.Sequential(common_sub_layers, name=f'group_{block_idx}_common_layers_{common_suffix}')
-                bb_block = tf.keras.Sequential(bb_sub_layers, name=f'group_{block_idx}_bb_layers_{bb_suffix}')
-                self.common_layers.append(common_block)
-                self.bb_layers.append(bb_block)
-                deleted_block = block
-            else:
-                self.bb_layers.append(block)
-        # Include EE branch
-        self.ee_layers.append(self.ee_branch)
-        # Include BB final layers
-        if self.block_type != 'original':
-            self.bb_layers.extend([self.final_bn, self.final_relu])
-        self.bb_layers.extend([self.global_pool, self.fc])
+        self.bb_layers.append(self.fc)
         print("Common layers:")
         for layer in self.common_layers:
             print(f"  {layer.name}")
@@ -215,7 +185,6 @@ class ResNetEE(tf.keras.Model):
         print("Backbone layers:")
         for layer in self.bb_layers:
             print(f"  {layer.name}")
-        self.blocks.remove(deleted_block)
 
     def collect_trainable_vars(self):
          # Collect trainable variables
@@ -225,19 +194,41 @@ class ResNetEE(tf.keras.Model):
         return common_trainable_vars, ee_trainable_vars, bb_trainable_vars
         
 
-    def group_of_blocks(self, num_blocks, filters, stride, block_idx):
+    def group_of_blocks(self, num_blocks, filters, stride, group_idx, tag, ee_insert_block_idx=-1):
+        common_layers = []
         layers = []
-        preact_block = self.preact_shortcuts or block_idx == 0
-        layers.append(ResidualBlock(filters, stride=stride, block_type=self.block_type,
+        has_ee = "ee" in tag
+        
+        preact_block = self.preact_shortcuts or group_idx == 0
+        block_0 = ResidualBlock(filters, stride=stride, block_type=self.block_type,
                                     shortcut_type=self.shortcut_type, l2_reg=self.l2_reg,
                                     dropout=self.dropout, preact_block=preact_block,
-                                    block_idx=block_idx, layer_idx=0, name=f"group_{block_idx}_block_0"))
+                                    block_idx=group_idx, layer_idx=0, name=f"group_{group_idx}_block_0")
+        if has_ee and ee_insert_block_idx == 0:
+            common_layers.append(block_0)
+        else:
+            layers.append(block_0)
+            
         for i in range(1, num_blocks):
-            layers.append(ResidualBlock(filters, stride=1, block_type=self.block_type,
+            if has_ee and i == ee_insert_block_idx:
+                common_layers.append(ResidualBlock(filters, stride=1, block_type=self.block_type,
                                         shortcut_type=self.shortcut_type, l2_reg=self.l2_reg,
                                         dropout=self.dropout, preact_block=False,
-                                        block_idx=block_idx, layer_idx=i, name=f"group_{block_idx}_block_{i}"))
-        return tf.keras.Sequential(layers, name=f'group_{block_idx}')
+                                        block_idx=group_idx, layer_idx=i, name=f"group_{group_idx}_block_{i}"))
+            else:
+                layers.append(ResidualBlock(filters, stride=1, block_type=self.block_type,
+                                        shortcut_type=self.shortcut_type, l2_reg=self.l2_reg,
+                                        dropout=self.dropout, preact_block=False,
+                                        block_idx=group_idx, layer_idx=i, name=f"group_{group_idx}_block_{i}"))
+        if len(common_layers) > 0:
+            common_suffix = '_'.join([str(i) for i in range(ee_insert_block_idx+1)])
+            bb_sufix = '_'.join([str(i) for i in range(ee_insert_block_idx + 1, num_blocks)])
+            return tf.keras.Sequential(common_layers, 
+                                       name=f'group_{group_idx}_common_layers_{common_suffix}'), \
+                   tf.keras.Sequential(layers, 
+                                       name=f'group_{group_idx}_bb_layers_{bb_sufix}')
+        # No early exit point"
+        return None, tf.keras.Sequential(layers, name=f'group_{group_idx}_{tag}')
 
     def call(self, inputs, training=None):
         # Process common layers

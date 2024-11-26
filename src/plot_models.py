@@ -7,7 +7,7 @@ import os
 FLAGS = flags.FLAGS
 flags.DEFINE_string("model", "resnet20", "resnet20 or resnet20-ee")
 flags.DEFINE_string("option", "keras", "keras or tf")
-flags.DEFINE_list("early_exit_points", [(1, 0)], "List of early exit points.")
+flags.DEFINE_list("early_exit_points", [1, 0], "List of early exit points.")
 flags.DEFINE_string("out_dir", "./assets/imgs", "Output file directory.")
 flags.DEFINE_string("tflog_dir", "./assets/tflogs", "Output log directory.")
 flags.DEFINE_bool("verbose", False, "Verbose mode.")

@@ -12,12 +12,13 @@ class _Client(fl.client.NumPyClient):
 		self.num_clients = num_clients
 		self.batch_size = batch_size
 		self.seed = seed
+		self.ee_config = ee_config
+		self.use_ee = 'ee_location' in ee_config.keys()
 		(self.data,self.val_data), self.num_classes, (self.num_samples,self.num_val_samples) = data_loader(cid, num_clients, batch_size=batch_size, seed=seed)
 		self.model_loader = model_loader
 		self.input_shape = self.data.element_spec[0].shape
 		self.client_compression = client_compression
 		self.combined_data = False
-		self.ee_config = ee_config
 
 	def set_parameters(self, parameters, config):
 		""" Set model weights """
@@ -72,7 +73,7 @@ class _Client(fl.client.NumPyClient):
 		computation_time = end_time - start_time
 
 		# Store results
-		results['model_size'] = utils.get_gzipped_model_size_from_model(self.model)
+		results['model_size'] = utils.get_gzipped_model_size_from_model(self.model, self.use_ee)
 		results['train_loss'] = float(h.history['loss'][-1])
 		results['train_accuracy'] = float(h.history['accuracy'][-1])
 		results['computation_time'] = computation_time

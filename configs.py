@@ -66,3 +66,6 @@ class Params:
             os.path.abspath("./assets/init_models/"),
             "{}_{}_random_1.h5".format(self.model, self.dataset),
         )
+        # Remove initial model file path
+        if self.ee_location is not None:
+            self.init_model_fp = None
