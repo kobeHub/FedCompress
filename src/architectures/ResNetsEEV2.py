@@ -173,6 +173,7 @@ class ResNetEE(tf.keras.Model):
             self.common_layers.extend([self.bn1, self.relu1])
 
         # Collect layers up to EE point
+        deleted_block = None
         for block_idx, block in enumerate(self.blocks):
             if block_idx < ee_block_idx:
                 self.common_layers.append(block)
@@ -196,6 +197,7 @@ class ResNetEE(tf.keras.Model):
                 bb_block = tf.keras.Sequential(bb_sub_layers, name=f'group_{block_idx}_bb_layers_{bb_suffix}')
                 self.common_layers.append(common_block)
                 self.bb_layers.append(bb_block)
+                deleted_block = block
             else:
                 self.bb_layers.append(block)
         # Include EE branch
@@ -213,7 +215,7 @@ class ResNetEE(tf.keras.Model):
         print("Backbone layers:")
         for layer in self.bb_layers:
             print(f"  {layer.name}")
-            
+        self.blocks.remove(deleted_block)
 
     def collect_trainable_vars(self):
          # Collect trainable variables
@@ -245,9 +247,7 @@ class ResNetEE(tf.keras.Model):
 
         # Compute EE output
         ee_x = x
-        for layer in self.ee_branch.layers:
-            ee_x = layer(ee_x, training=training)
-        ee_output = ee_x  # Shape: (batch_size, num_classes)
+        ee_output = self.ee_branch(ee_x, training=False)
 
         # Compute entropy
         entropy = self.compute_entropy(ee_output)
@@ -323,15 +323,13 @@ class ResNetEE(tf.keras.Model):
     def resnet20_ee(cls, input_shape=(32,32,3), num_classes=10, weights_dir=None,
                  block_type='original', shortcut_type='A', l2_reg=1e-4, name="resnet20-ee", 
                  ee_location=(1, 0), ee_threshold=0.1):
-        inputs = tf.keras.layers.Input(shape=input_shape, name='input')
-        x = inputs
         model = cls(input_shape=input_shape, n_classes=num_classes, l2_reg=l2_reg, group_sizes=(3, 3, 3),
                     features=(16, 32, 64), strides=(1, 2, 2),
                     first_conv={"filters": 16, "kernel_size": 3, "strides": 1}, shortcut_type=shortcut_type,
                     block_type=block_type, preact_shortcuts=False, name=name, 
                     ee_location=ee_location, ee_threshold=ee_threshold)
-        outputs = model(x)
-        keras_model = tf.keras.Model(inputs, outputs, name=name)
+        dummy_inputs = tf.random.uniform((1, 32, 32, 3))
+        model(dummy_inputs, training=True)
         if weights_dir is not None:
             model.load_weights(weights_dir).expect_partial()
-        return keras_model
+        return model
