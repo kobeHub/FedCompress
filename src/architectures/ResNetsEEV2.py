@@ -144,10 +144,10 @@ class ResNetEE(tf.keras.Model):
             if group_idx < group_idx_ee:
                 # All layers are common
                 _, group = self.group_of_blocks(group_size, feature, stride, group_idx, "common")
-                self.common_layers.append(group)
+                self.common_layers.extend(group)
             elif group_idx == group_idx_ee:
                 common_layers, bb_layers = self.group_of_blocks(group_size, feature, stride, group_idx, "ee", block_idx_ee)
-                self.common_layers.append(common_layers)
+                self.common_layers.extend(common_layers)
                 # Add ee
                 self.ee_branch = tf.keras.Sequential([
                         tf.keras.layers.Conv2D(64, kernel_size=3, padding='same', activation='relu',
@@ -159,10 +159,10 @@ class ResNetEE(tf.keras.Model):
                     ], name='ee_branch')
                 self.ee_layers.append(self.ee_branch)
                 # Add bb 
-                self.bb_layers.append(bb_layers)                
+                self.bb_layers.extend(bb_layers)                
             else:
                 _, group = self.group_of_blocks(group_size, feature, stride, group_idx, "bb")
-                self.bb_layers.append(group)
+                self.bb_layers.extend(group)
 
 
         # Final batch norm and ReLU
@@ -176,15 +176,15 @@ class ResNetEE(tf.keras.Model):
         self.bb_layers.append(self.global_pool)
         self.fc = tf.keras.layers.Dense(n_classes, kernel_regularizer=tf.keras.regularizers.l2(self.l2_reg), name='main_output')
         self.bb_layers.append(self.fc)
-        # print("Common layers:")
-        # for layer in self.common_layers:
-        #     print(f"  {layer.name}")
-        # print("Early exit layers:")
-        # for layer in self.ee_layers:
-        #     print(f"  {layer.name}")
-        # print("Backbone layers:")
-        # for layer in self.bb_layers:
-        #     print(f"  {layer.name}")
+        print("Common layers:")
+        for layer in self.common_layers:
+            print(f"  {layer.name}")
+        print("Early exit layers:")
+        for layer in self.ee_layers:
+            print(f"  {layer.name}")
+        print("Backbone layers:")
+        for layer in self.bb_layers:
+            print(f"  {layer.name}")
 
     def collect_trainable_vars(self):
          # Collect trainable variables
@@ -204,13 +204,13 @@ class ResNetEE(tf.keras.Model):
                                     shortcut_type=self.shortcut_type, l2_reg=self.l2_reg,
                                     dropout=self.dropout, preact_block=preact_block,
                                     block_idx=group_idx, layer_idx=0, name=f"group_{group_idx}_block_0")
-        if has_ee and ee_insert_block_idx == 0:
+        if has_ee and ee_insert_block_idx >= 0:
             common_layers.append(block_0)
         else:
             layers.append(block_0)
             
         for i in range(1, num_blocks):
-            if has_ee and i == ee_insert_block_idx:
+            if has_ee and i <= ee_insert_block_idx:
                 common_layers.append(ResidualBlock(filters, stride=1, block_type=self.block_type,
                                         shortcut_type=self.shortcut_type, l2_reg=self.l2_reg,
                                         dropout=self.dropout, preact_block=False,
@@ -220,15 +220,9 @@ class ResNetEE(tf.keras.Model):
                                         shortcut_type=self.shortcut_type, l2_reg=self.l2_reg,
                                         dropout=self.dropout, preact_block=False,
                                         block_idx=group_idx, layer_idx=i, name=f"group_{group_idx}_block_{i}"))
-        if len(common_layers) > 0:
-            common_suffix = '_'.join([str(i) for i in range(ee_insert_block_idx+1)])
-            bb_sufix = '_'.join([str(i) for i in range(ee_insert_block_idx + 1, num_blocks)])
-            return tf.keras.Sequential(common_layers, 
-                                       name=f'group_{group_idx}_common_layers_{common_suffix}'), \
-                   tf.keras.Sequential(layers, 
-                                       name=f'group_{group_idx}_bb_layers_{bb_sufix}')
-        # No early exit point"
-        return None, tf.keras.Sequential(layers, name=f'group_{group_idx}_{tag}')
+        # Remove all sequential layers
+        return common_layers, layers
+
 
     def call(self, inputs, training=None):
         # Process common layers
@@ -238,7 +232,7 @@ class ResNetEE(tf.keras.Model):
 
         # Compute EE output
         ee_x = x
-        ee_output = self.ee_branch(ee_x, training=False)
+        ee_output = self.ee_branch(ee_x, training=training)
 
         # Compute entropy
         entropy = self.compute_entropy(ee_output)
