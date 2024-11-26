@@ -39,7 +39,7 @@ class Params:
     gpu_usage: float = 0.2
     seed: int = 0
     # Early exit params
-    ee_location: List[int, int] = [1, 0]
+    ee_location: str = '1,0'
     ee_threshold: float = 0.5
     # Logging params
     random_id: str = str(uuid.uuid4())[-10:]

@@ -18,16 +18,16 @@ def main(argv):
     del argv  # Unused.
     model_name = FLAGS.model
     if model_name == "resnet20":
-        model = get_resnet20_network(early_exit_points=None, new_imple=FLAGS.new_imple)
+        model = get_resnet20_network(ee_location=None, new_imple=FLAGS.new_imple)
     elif model_name == "resnet20-ee":
         
 
         assert FLAGS.early_exit_points is not None
         print(f"Early exit points: {FLAGS.early_exit_points}")
         if FLAGS.new_imple:
-            model = get_resnet20_network(early_exit_points=FLAGS.early_exit_points, new_imple=FLAGS.new_imple)
+            model = get_resnet20_network(ee_location=FLAGS.early_exit_points, new_imple=FLAGS.new_imple)
         else:
-            model, ee_layers, bb_layers = get_resnet20_network(early_exit_points=FLAGS.early_exit_points)
+            model, ee_layers, bb_layers = get_resnet20_network(ee_location=FLAGS.early_exit_points)
             for layer in ee_layers:
                 print(f"  {layer.name}")
             print(f"Backbone layers:")

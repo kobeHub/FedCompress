@@ -136,6 +136,7 @@ class _Server(fl.server.Server):
 	def get_model(self):
 		ee_location = self.ee_config['ee_location'] if 'ee_location' in self.ee_config.keys() else None
 		ee_threshold = self.ee_config['ee_threshold'] if 'ee_threshold' in self.ee_config.keys() else None	
+		print(f"ee_location: {ee_location}, ee_threshold: {ee_threshold}")
 		return self.model_loader(input_shape=self.input_shape[1:],num_classes=self.num_classes, 
 						   ee_location=ee_location, ee_threshold=ee_threshold)
 

@@ -204,23 +204,23 @@ class ResNetEE(tf.keras.Model):
         if self.block_type != 'original':
             self.bb_layers.extend([self.final_bn, self.final_relu])
         self.bb_layers.extend([self.global_pool, self.fc])
-
-         # Collect trainable variables
-        self.common_trainable_vars = [var for layer in self.common_layers for var in layer.trainable_variables]
-        self.ee_trainable_vars = [var for layer in self.ee_layers for var in layer.trainable_variables]
-        self.bb_trainable_vars = [var for layer in self.bb_layers for var in layer.trainable_variables]
-
         print("Common layers:")
         for layer in self.common_layers:
             print(f"  {layer.name}")
         print("Early exit layers:")
         for layer in self.ee_layers:
             print(f"  {layer.name}")
-            self.ee_trainable_vars.extend(layer.trainable_variables)
         print("Backbone layers:")
         for layer in self.bb_layers:
             print(f"  {layer.name}")
-            self.bb_trainable_vars.extend(layer.trainable_variables)
+            
+
+    def collect_trainable_vars(self):
+         # Collect trainable variables
+        common_trainable_vars = [var for layer in self.common_layers for var in layer.trainable_variables]
+        ee_trainable_vars = [var for layer in self.ee_layers for var in layer.trainable_variables]
+        bb_trainable_vars = [var for layer in self.bb_layers for var in layer.trainable_variables]
+        return common_trainable_vars, ee_trainable_vars, bb_trainable_vars
         
 
     def group_of_blocks(self, num_blocks, filters, stride, block_idx):
@@ -288,10 +288,12 @@ class ResNetEE(tf.keras.Model):
             main_loss = self.compiled_loss(y, main_output, regularization_losses=self.losses)
             ee_loss = self.compiled_loss(y, ee_output, regularization_losses=self.losses)
 
-        main_gradients = tape.gradient(main_loss, self.bb_trainable_vars)
-        ee_gradients = tape.gradient(ee_loss, self.ee_trainable_vars)
-        self.optimizer.apply_gradients(zip(main_gradients, self.bb_trainable_vars))
-        self.optimizer.apply_gradients(zip(ee_gradients, self.ee_trainable_vars))
+        common_vars, ee_vars, bb_vars = self.collect_trainable_vars()
+        ee_vars = common_vars + ee_vars
+        main_gradients = tape.gradient(main_loss, bb_vars)
+        ee_gradients = tape.gradient(ee_loss, ee_vars)
+        self.optimizer.apply_gradients(zip(main_gradients, bb_vars))
+        self.optimizer.apply_gradients(zip(ee_gradients, ee_vars))
 
         # Update metrics
         self.compiled_metrics.update_state(y, main_output)

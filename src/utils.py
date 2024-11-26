@@ -247,6 +247,9 @@ def none_or_int(value):
         return None
     return value
 
+def str2list(value):
+    return [int(i) for i in value.split(',')]
+
 
 " Create if exist without warning."
 

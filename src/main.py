@@ -230,8 +230,8 @@ def get_cluster_search_config():
 
 def get_ee_config():
     return {
-        "location": args.ee_location,
-        "threshold": args.ee_threshold,
+        "ee_location": args.ee_location,
+        "ee_threshold": args.ee_threshold,
     }
 
 def create_client(cid):
