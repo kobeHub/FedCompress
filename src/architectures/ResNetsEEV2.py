@@ -156,9 +156,9 @@ class ResNetEE(tf.keras.Model):
         # Global average pooling and output layer
         self.global_pool = tf.keras.layers.GlobalAveragePooling2D(name='GMP_layer')
         self.fc = tf.keras.layers.Dense(n_classes, kernel_regularizer=tf.keras.regularizers.l2(self.l2_reg), name='main_output')
+        self.model_parittion()
 
-    def build(self, input_shape):
-        super(ResNetEE, self).build(input_shape)
+    def model_parittion(self):
         # Record the ee layers and backbone layers
         # Partition layers into common_layers, ee_layers, and bb_layers
         self.common_layers = []
