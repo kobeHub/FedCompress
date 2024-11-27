@@ -191,6 +191,7 @@ class ResNetEE(tf.keras.Model):
         common_trainable_vars = [var for layer in self.common_layers for var in layer.trainable_variables]
         ee_trainable_vars = [var for layer in self.ee_layers for var in layer.trainable_variables]
         bb_trainable_vars = [var for layer in self.bb_layers for var in layer.trainable_variables]
+        assert len(common_trainable_vars) + len(ee_trainable_vars) + len(bb_trainable_vars) == len(self.trainable_variables)
         return common_trainable_vars, ee_trainable_vars, bb_trainable_vars
         
 
@@ -226,6 +227,10 @@ class ResNetEE(tf.keras.Model):
 
     def call(self, inputs, training=None):
         # Process common layers
+        for layer in self.layers:
+            if isinstance(layer, tf.keras.layers.BatchNormalization):
+                layer.trainable = True
+
         x = inputs
         for layer in self.common_layers:
             print(f"common layer: {layer.name}")
