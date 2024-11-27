@@ -228,11 +228,13 @@ class ResNetEE(tf.keras.Model):
         # Process common layers
         x = inputs
         for layer in self.common_layers:
+            print(f"common layer: {layer.name}")
             x = layer(x, training=training)
 
         # Compute EE output
         ee_x = x
         ee_output = self.ee_branch(ee_x, training=training)
+        print(f"EE output: {ee_output.shape}")
 
         # Compute entropy
         entropy = self.compute_entropy(ee_output)
@@ -245,6 +247,7 @@ class ResNetEE(tf.keras.Model):
             x_bb = x
             for layer in self.bb_layers:
                 x_bb = layer(x_bb, training=training)
+                print(f"continue_forward layer: {layer.name}")
             return x_bb
 
         # Decide whether to exit early
@@ -254,15 +257,18 @@ class ResNetEE(tf.keras.Model):
             use_ee = tf.less(entropy, entropy_threshold)
             use_ee = tf.cast(use_ee, tf.bool)
             # For each sample in the batch, decide whether to exit early
-            final_output = tf.where(tf.expand_dims(use_ee, axis=-1), ee_output, continue_forward())
+            final_output = tf.cond(tf.reduce_all(use_ee), exit_early, continue_forward)
+            print(f"=====exit_early: {final_output.shape}")
             return final_output
         else:
             # During training, compute both outputs
             # Process backbone layers
             x_bb = x
             for layer in self.bb_layers:
+                print(f"bb layer: {layer.name}")
                 x_bb = layer(x_bb, training=training)
             main_output = x_bb
+            print(f"=========backbone output: {main_output.shape}, {ee_output.shape}")
             return ee_output, main_output
 
 
@@ -307,14 +313,14 @@ class ResNetEE(tf.keras.Model):
     @classmethod
     def resnet20_ee(cls, input_shape=(32,32,3), num_classes=10, weights_dir=None,
                  block_type='original', shortcut_type='A', l2_reg=1e-4, name="resnet20-ee", 
-                 ee_location=(1, 0), ee_threshold=0.1):
+                 ee_location=(1, 0), ee_threshold=10):
         model = cls(input_shape=input_shape, n_classes=num_classes, l2_reg=l2_reg, group_sizes=(3, 3, 3),
                     features=(16, 32, 64), strides=(1, 2, 2),
                     first_conv={"filters": 16, "kernel_size": 3, "strides": 1}, shortcut_type=shortcut_type,
                     block_type=block_type, preact_shortcuts=False, name=name, 
                     ee_location=ee_location, ee_threshold=ee_threshold)
         inputs = tf.keras.Input(shape=input_shape)
-        outputs = model(inputs)
+        outputs = model(inputs, training=False)
         model = tf.keras.Model(inputs, outputs, name=name)
         if weights_dir is not None:
             model.load_weights(weights_dir).expect_partial()

@@ -174,7 +174,7 @@ class _Server(fl.server.Server):
 			# Centralized evaluation
 			# Keras model builtin evaluation method
 			metrics = self.model.evaluate(self.data, verbose=0)
-			results['model_size'] = utils.get_gzipped_model_size_from_model(self.model, self.use_ee)
+			results['model_size'] = utils.get_gzipped_model_size_from_model(self.model)
 			results["accuracy"] = metrics[1]
 			
 			# Measure communication/computation cost
@@ -221,7 +221,7 @@ class _Server(fl.server.Server):
 						temperature=self.server_compression_config['temperature'],
 						seed=self.server_compression_config['seed'])
 					metrics = self.model.evaluate(self.data, verbose=0)
-					results['compressed_model_size'] = utils.get_gzipped_model_size_from_model(self.model, self.use_ee)
+					results['compressed_model_size'] = utils.get_gzipped_model_size_from_model(self.model)
 					results['compressed_accuracy'] = metrics[1]
 
 					if self._is_final_round(rnd):
