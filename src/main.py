@@ -176,19 +176,26 @@ parser.add_argument(
     type=float,
     help="temperature for server-side ood weight clustering with KD",
 )
+parser.add_argument(
+    "--iid",
+    default=1,
+    type=int,
+    help="iid or non-iid dataset split",
+)
 args = parser.parse_args()
 
+iid_suffix = "iid" if args.iid else "noniid"
 model_save_dir_fn = lambda x, y: os.path.abspath(
     os.path.join(
         args.model_dir,
-        f"{args.model_name}_{args.dataset}_{args.server_compression}_{args.client_compression}_{x}_{args.random_id}_{y}.h5",
+        f"{args.model_name}_{args.dataset}_{args.server_compression}_{args.client_compression}_{x}_{args.random_id}_{y}_{iid_suffix}.h5",
     )
 )
 store_dir_fn = lambda x: os.path.abspath(
     os.path.join(
         args.results_dir,
         # x[0], file name; x[1]: method; x[2]: extension
-        f"{args.model_name}_{args.dataset}_{args.server_compression}_{args.client_compression}_{x[0]}_{args.random_id}_{x[1]}.{x[2]}",
+        f"{args.model_name}_{args.dataset}_{args.server_compression}_{args.client_compression}_{x[0]}_{args.random_id}_{x[1]}_{iid_suffix}.{x[2]}",
     )
 )
 
@@ -245,6 +252,7 @@ def create_client(cid):
         batch_size=args.batch_size,
         client_compression=args.client_compression,
         seed=args.seed,
+        iid=args.iid,
     )
 
 

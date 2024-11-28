@@ -58,6 +58,7 @@ def main(args):
 				"--cluster_search_window", str(params.cluster_window),
 				"--cluster_search_patience", str(params.cluster_patience),
 				"--cluster_search_metric_limit", str(params.cluster_limit),
+				"--iid", str(params.iid),
 			]
 			call_cmd = [c for c in call_cmd if c is not None]
 			print('\nCalling command:')

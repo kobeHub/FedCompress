@@ -11,6 +11,7 @@ class Params:
     # Datasets
     dataset: str = "cifar10"
     ood_dataset: str = "stylegan"
+    iid: int = 0
     # Model
     model: str = "resnet20"
     init_model_fp: str = ""

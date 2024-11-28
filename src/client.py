@@ -6,17 +6,18 @@ import time
 
 class _Client(fl.client.NumPyClient):
 
-	def __init__(self, cid, num_clients, model_loader, data_loader, batch_size, client_compression, seed):
+	def __init__(self, cid, num_clients, model_loader, data_loader, batch_size, client_compression, seed, iid):
 		self.cid = cid
 		self.data_loader = data_loader
 		self.num_clients = num_clients
 		self.batch_size = batch_size
 		self.seed = seed
-		(self.data,self.val_data), self.num_classes, (self.num_samples,self.num_val_samples) = data_loader(cid, num_clients, batch_size=batch_size, seed=seed)
+		(self.data,self.val_data), self.num_classes, (self.num_samples,self.num_val_samples) = data_loader(cid, num_clients, batch_size=batch_size, seed=seed, iid=iid)
 		self.model_loader = model_loader
 		self.input_shape = self.data.element_spec[0].shape
 		self.client_compression = client_compression
 		self.combined_data = False
+		self.iid = iid
 
 	def set_parameters(self, parameters, config):
 		""" Set model weights """
