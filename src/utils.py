@@ -248,6 +248,8 @@ def none_or_int(value):
     return value
 
 def str2list(value):
+    if value == "None":
+        return None
     return [int(i) for i in value.split(',')]
 
 

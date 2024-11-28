@@ -176,7 +176,7 @@ parser.add_argument(
     type=float,
     help="temperature for server-side ood weight clustering with KD",
 )
-parser.add_argument("--iid", default=True, type=bool, help="iid or non-iid data")
+parser.add_argument("--iid", default=1, type=int, help="iid or non-iid data")
 parser.add_argument("--ee_location", default=[1, 0], type=utils.str2list, help="early exit location")
 parser.add_argument("--ee_threshold", default=0.3, type=float, help="early exit threshold")
 args = parser.parse_args()
