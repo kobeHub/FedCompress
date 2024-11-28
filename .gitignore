@@ -10,6 +10,7 @@ data/
 .DS_Store
 assets/imgs
 assets/tflogs
+assets/icons
 
 # Distribution / packaging
 .Python
