@@ -181,21 +181,20 @@ parser.add_argument("--ee_location", default=[1, 0], type=utils.str2list, help="
 parser.add_argument("--ee_threshold", default=0.3, type=float, help="early exit threshold")
 args = parser.parse_args()
 
+iid_suffix = "iid" if args.iid else "noniid"
 model_save_dir_fn = lambda x, y: os.path.abspath(
-    suffix = "iid" if args.iid else "noniid"
     os.path.join(
         args.model_dir,
         f"{args.model_name}_{args.dataset}_{args.server_compression}"
-        f"_{args.client_compression}_{x}_{args.random_id}_{y}_{suffix}.h5",
+        f"_{args.client_compression}_{x}_{args.random_id}_{y}_{iid_suffix}.h5",
     )
 )
 store_dir_fn = lambda x: os.path.abspath(
-    suffix = "iid" if args.iid else "noniid"
     os.path.join(
         args.results_dir,
         # x[0], file name; x[1]: method; x[2]: extension
         f"{args.model_name}_{args.dataset}_{args.server_compression}"
-        f"_{args.client_compression}_{x[0]}_{args.random_id}_{x[1]}_{suffix}.{x[2]}",
+        f"_{args.client_compression}_{x[0]}_{args.random_id}_{x[1]}_{iid_suffix}.{x[2]}",
     )
 )
 
