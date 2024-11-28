@@ -11,6 +11,7 @@ class Params:
     # Datasets
     dataset: str = "cifar10"
     ood_dataset: str = "stylegan"
+    iid: bool = False
     # Model
     model: str = "resnet20"
     init_model_fp: str = ""
@@ -39,6 +40,7 @@ class Params:
     gpu_usage: float = 0.2
     seed: int = 0
     # Early exit params
+    enable_ee: bool = False
     ee_location: str = '1,0'
     ee_threshold: float = 0.5
     # Logging params
@@ -67,5 +69,8 @@ class Params:
             "{}_{}_random_1.h5".format(self.model, self.dataset),
         )
         # Remove initial model file path
+        if not self.enable_ee:
+            self.ee_location = None
+            self.ee_threshold = 0.0
         if self.ee_location is not None:
             self.init_model_fp = None

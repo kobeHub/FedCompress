@@ -176,21 +176,26 @@ parser.add_argument(
     type=float,
     help="temperature for server-side ood weight clustering with KD",
 )
+parser.add_argument("--iid", default=True, type=bool, help="iid or non-iid data")
 parser.add_argument("--ee_location", default=[1, 0], type=utils.str2list, help="early exit location")
 parser.add_argument("--ee_threshold", default=0.3, type=float, help="early exit threshold")
 args = parser.parse_args()
 
 model_save_dir_fn = lambda x, y: os.path.abspath(
+    suffix = "iid" if args.iid else "noniid"
     os.path.join(
         args.model_dir,
-        f"{args.model_name}_{args.dataset}_{args.server_compression}_{args.client_compression}_{x}_{args.random_id}_{y}.h5",
+        f"{args.model_name}_{args.dataset}_{args.server_compression}"
+        f"_{args.client_compression}_{x}_{args.random_id}_{y}_{suffix}.h5",
     )
 )
 store_dir_fn = lambda x: os.path.abspath(
+    suffix = "iid" if args.iid else "noniid"
     os.path.join(
         args.results_dir,
         # x[0], file name; x[1]: method; x[2]: extension
-        f"{args.model_name}_{args.dataset}_{args.server_compression}_{args.client_compression}_{x[0]}_{args.random_id}_{x[1]}.{x[2]}",
+        f"{args.model_name}_{args.dataset}_{args.server_compression}"
+        f"_{args.client_compression}_{x[0]}_{args.random_id}_{x[1]}_{suffix}.{x[2]}",
     )
 )
 
@@ -253,6 +258,7 @@ def create_client(cid):
         client_compression=args.client_compression,
         seed=args.seed,
         ee_config=get_ee_config(),
+        iid=args.iid,
     )
 
 

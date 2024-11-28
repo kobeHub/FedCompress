@@ -32,7 +32,10 @@ DATASETS = {
 	},
 }
 
-def get_cifar10(id=0, num_clients=10, return_eval_ds=False, batch_size=128, valid_split=0.1, seed=0, name='cifar10'):
+def get_cifar10(id=0, num_clients=10, return_eval_ds=False, batch_size=128, valid_split=0.1, seed=0, name='cifar10', iid=True):
+	if not iid:
+		return get_cifar10_noniid(id=id, num_clients=num_clients, return_eval_ds=return_eval_ds, batch_size=batch_size, 
+							valid_split=valid_split, seed=seed, name=name)
 
 	# Fix seed for reproducability.
 	np.random.seed(seed)
@@ -73,6 +76,91 @@ def get_cifar10(id=0, num_clients=10, return_eval_ds=False, batch_size=128, vali
 		ds = (ds,val_ds)
 
 	return ds, num_classes, num_samples
+
+def get_cifar10_noniid(id=0, num_clients=10, return_eval_ds=False, batch_size=128, 
+                       valid_split=0.1, seed=0, name='cifar10'):
+    # Fix seed for reproducability
+    np.random.seed(seed)
+    
+    # Define label groups
+    label_groups = [
+        [0, 1, 2],        # First 3 labels
+        [3, 4, 5],        # Next 3 labels
+        [6, 7, 8, 9]      # Last 4 labels
+    ]
+    
+    # Define client groups
+    client_groups = [
+        list(range(0, 3)),           # First 3 clients
+        list(range(3, 6)),           # Next 3 clients
+        list(range(6, 10))           # Last 4 clients
+    ]
+    
+    # Find which group the current client belongs to
+    client_group_idx = None
+    for i, group in enumerate(client_groups):
+        if id in group:
+            client_group_idx = i
+            break
+            
+    # Prepare evaluation set
+    if return_eval_ds:
+        ds, info = DATASETS[name]['get_data_fn'](split='test', with_info=True)
+        ds = tf.data.Dataset.from_tensor_slices(ds)\
+                .map(DATASETS[name]['test_fn']).batch(batch_size*4).prefetch(-1)
+        ds = (ds,None)
+        num_samples, num_classes = info['num_examples'], info['num_classes']
+    else:
+        # Load data
+        ds, info = DATASETS[name]['get_data_fn'](split='train', with_info=True)
+        num_samples, num_classes = info['num_examples'], info['num_classes']
+        
+        # Create mask for client's label group
+        labels = ds[1].squeeze()
+        mask = np.isin(labels, label_groups[client_group_idx])
+        filtered_images = ds[0][mask]
+        filtered_labels = ds[1][mask]
+        
+        # Random sample within group
+        group_size = len(client_groups[client_group_idx])
+        num_samples_per_client = len(filtered_images) // group_size
+        
+        # Randomly select samples for this client
+        indices = np.random.permutation(len(filtered_images))
+        start_idx = (id % group_size) * num_samples_per_client
+        end_idx = start_idx + num_samples_per_client
+        
+        client_indices = indices[start_idx:end_idx]
+        train_images = filtered_images[client_indices]
+        train_labels = filtered_labels[client_indices]
+        
+        val_ds = None
+        num_samples = (train_images.shape[0], None)
+        
+        # Validation set
+        if valid_split > 0.0:
+            train_images, valid_images, train_labels, valid_labels = train_test_split(
+                train_images, train_labels, test_size=valid_split, random_state=seed
+            )
+            val_ds = tf.data.Dataset.from_tensor_slices((valid_images,valid_labels))\
+                        .map(DATASETS[name]['test_fn']).batch(batch_size).prefetch(-1)
+            num_samples = (train_images.shape[0], valid_images.shape[0])
+            
+        # Train set
+        ds = tf.data.Dataset.from_tensor_slices((train_images, train_labels))\
+                .map(DATASETS[name]['train_fn'], 
+                     num_parallel_calls=tf.data.AUTOTUNE)\
+                .shuffle(10000,seed,True)\
+                .batch(batch_size)
+                
+        if DATASETS[name]['augment_fn'] is not None:
+            ds = ds.map(DATASETS[name]['augment_fn'], 
+                       num_parallel_calls=tf.data.AUTOTUNE)
+        ds = ds.prefetch(-1)
+        ds = (ds,val_ds)
+        
+    return ds, num_classes, num_samples
+
 
 def get_stylegan(batch_size=128, size=50000, reshape_size=(32,32), seed=0, name='stylegan'):
 	# Fix seed for reproducability.
