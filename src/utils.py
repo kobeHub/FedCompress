@@ -292,6 +292,7 @@ def get_gzipped_model_size(file):
     return os.path.getsize(zipped_file) / 1000
 
 
+" Get gzipped model size from model in KB."
 def get_gzipped_model_size_from_model(model):
     with contextlib.redirect_stdout(None):
         _, file = tempfile.mkstemp(".h5")

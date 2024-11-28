@@ -164,28 +164,6 @@ class _Server(fl.server.Server):
 			metrics = self.model.evaluate(self.data, verbose=0)
 			results['model_size'] = utils.get_gzipped_model_size_from_model(self.model)
 			results["accuracy"] = metrics[1]
-			
-			# Measure communication/computation cost
-			# Skip the initial evaluation
-			if 'computation_time' in config.keys():
-				results["comp_costs"] = costs.measure_computation_cost(config['computation_times'])
-				results["avg_comp_cost"] = costs.measure_computation_cost(config['computation_time'])
-				results["commu_costs"], results["avg_commu_cost"] = costs.measure_communication_cost(results['model_size'], 
-															   results['model_size'], self.num_clients)
-				results["avg_total_cost"] = results["avg_commu_cost"] + results["avg_comp_cost"]
-				results["cost_efficiency"] = costs.cost_efficiency(results["avg_total_cost"], results["accuracy"])
-
-			if self._is_final_round(rnd):
-				model_save_dir = self.model_save_dir_fn(False, self.method)
-				print(f"[Server] - Saving model to {model_save_dir} at final round")
-				self.model.save(model_save_dir, include_optimizer=False)
-			print(f"[Server] - Round {rnd}: For {self.num_clusters} clusters, accuracy {metrics[1]:0.4f} " +
-				f"(Val. Accuracy: {results['val_accuracy'] if 'val_accuracy' in results.keys() else 0.0 :0.4f}).")
-			# Skip the initial evaluation
-			if 'computation_time' in config.keys():	
-				print(f" Avg computation time: {config['computation_time']:0.4f}, Avg computation cost: {results['avg_comp_cost']:0.4f},"
-				f" Avg communication cost: {results['avg_commu_cost']:0.4f}, Avg total cost: {results['avg_total_cost']:0.4f},"
-				f" Cost efficiency: {results['cost_efficiency']:0.4f}.")
 	
 
 			# Update best-seen performance (BEFORE setting number of clusters!)
@@ -213,6 +191,32 @@ class _Server(fl.server.Server):
 
 					if self._is_final_round(rnd):
 						self.model.save(self.model_save_dir_fn(True, self.method), include_optimizer=False)
+						
+			# Eval communication and computation cost
+			# Skip the initial evaluation
+			if 'computation_time' in config.keys():
+				downlink_size_in_bits = results['model_size'] * 1000 * 8
+				uplink_size_in_KB = results['compressed_model_size'] if 'compressed_model_size' in results.keys() else results['model_size']
+				uplink_size_in_bits = uplink_size_in_KB * 1000 * 8
+				results["comp_costs"] = costs.measure_computation_cost(config['computation_times'])
+				results["avg_comp_cost"] = costs.measure_computation_cost(config['computation_time'])
+				results["commu_costs"], results["avg_commu_cost"] = costs.measure_communication_cost(downlink_size_in_bits, 
+																						 uplink_size_in_bits, self.num_clients)
+				results["avg_total_cost"] = results["avg_commu_cost"] + results["avg_comp_cost"]
+				results["cost_efficiency"] = costs.cost_efficiency(results["avg_total_cost"], results["accuracy"])
+
+			if self._is_final_round(rnd):
+				model_save_dir = self.model_save_dir_fn(False, self.method)
+				print(f"[Server] - Saving model to {model_save_dir} at final round")
+				self.model.save(model_save_dir, include_optimizer=False)
+			print(f"[Server] - Round {rnd}: For {self.num_clusters} clusters, accuracy {metrics[1]:0.4f} " +
+				f"(Val. Accuracy: {results['val_accuracy'] if 'val_accuracy' in results.keys() else 0.0 :0.4f}).")
+			# Skip the initial evaluation
+			if 'computation_time' in config.keys():	
+				print(f" Avg computation time: {config['computation_time']:0.4f}, Avg computation cost: {results['avg_comp_cost']:0.4f},"
+				f" Avg communication cost: {results['avg_commu_cost']:0.4f}, Avg total cost: {results['avg_total_cost']:0.4f},"
+				f" Cost efficiency: {results['cost_efficiency']:0.4f}.")
+			
 
 			print(f"[Server] - Round {rnd}: Next training round will be executed with {self.num_clusters} clusters (Compression {results['compression']}).")
 			return (metrics[0], results), self.get_parameters()
