@@ -1,25 +1,5 @@
 import tensorflow as tf
 
-class PadLayer(tf.keras.layers.Layer):
-    def __init__(self, stride, filters, **kwargs):
-        super(PadLayer, self).__init__(**kwargs)
-        self.stride = stride
-        self.filters = filters
-
-    def call(self, x):
-        return tf.pad(tf.keras.layers.MaxPool2D(1, self.stride)(x) if self.stride>1 else x,
-                      paddings=[(0, 0), (0, 0), (0, 0), (0, self.filters - x.shape[-1])])
-        
-    def get_config(self):
-        # Add stride and filters to the config dictionary
-        config = super(PadLayer, self).get_config()
-        config.update({
-            "stride": self.stride,
-            "filters": self.filters,
-        })
-        return config
-
-
 def regularized_padded_conv(*args, **kwargs):
     return tf.keras.layers.Conv2D(*args, **kwargs, padding='same', kernel_regularizer=_regularizer,
         kernel_initializer='he_normal', use_bias=False)
@@ -37,7 +17,8 @@ def shortcut(x, filters, stride, mode):
         x = regularized_padded_conv(filters, 1, strides=stride)(x)
         return tf.keras.layers.BatchNormalization()(x)
     elif mode == 'A':
-        return PadLayer(stride, filters)(x)
+        return tf.pad(tf.keras.layers.MaxPool2D(1, stride)(x) if stride>1 else x,
+            paddings=[(0, 0), (0, 0), (0, 0), (0, filters - x.shape[-1])])
     else:
         raise KeyError("Parameter shortcut_type not recognized!")
 

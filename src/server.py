@@ -146,7 +146,6 @@ class _Server(fl.server.Server):
 		# Lazy model loading
 		if not hasattr(self, 'model'):
 			self.model = self.get_model()
-			self.model.summary()
 		# Specific loss, metrics and optimizer with compile
 		self.model.compile(metrics=[tf.keras.metrics.SparseCategoricalAccuracy(name='accuracy')])
 		if parameters is not None:
