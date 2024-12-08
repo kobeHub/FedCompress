@@ -225,7 +225,8 @@ class _Server(fl.server.Server):
 			# Skip the initial evaluation
 			if 'computation_time' in config.keys():	
 				print(f" Avg computation time: {config['computation_time']:0.4f}, Avg computation cost: {results['avg_comp_cost']:0.4f},"
-				f" Avg communication cost: {results['avg_commu_cost']:0.4f}, Avg total cost: {results['avg_total_cost']:0.4f},"
+				f" Avg communication cost: {results['avg_commu_cost']:0.4f}, cumulative total cost: {results['avg_total_cost']:0.4f},"
+		  		f" cumulative computation cost: {results['cumulative_comp_costs']:0.4f}, cumulative communication cost: {results['cumulative_commu_costs']:0.4f},"
 				f" Cost efficiency: {results['cost_efficiency']:0.4f}.")
 			
 

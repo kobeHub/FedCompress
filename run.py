@@ -8,10 +8,12 @@ os.environ['CUDA_DEVICE_ORDER']="PCI_BUS_ID"
 
 def create_parser():
     # Create the parser
-    parser = argparse.ArgumentParser(description='FedCompress arguments.')
-    parser.add_argument('--datasets', nargs='+', default=['cifar10'], choices=['cifar10'], help="List of datasets to use. Default is ['cifar10'].")
-    parser.add_argument('--methods', nargs=1, default=['both'], choices=['fedcompress', 'client', 'fedavg'], help="Method to use. One of 'fedcompress', 'client', 'standard'. Default is 'both'.")
-    return parser
+	parser = argparse.ArgumentParser(description='FedCompress arguments.')
+	parser.add_argument('--datasets', nargs='+', default=['cifar10'], choices=['cifar10'], help="List of datasets to use. Default is ['cifar10'].")
+	parser.add_argument('--methods', nargs=1, default=['both'], choices=['fedcompress', 'client', 'fedavg'],
+						 help="Method to use. One of 'fedcompress', 'client', 'standard'. Default is 'both'.")
+	parser.add_argument('--iid', type=int, default=1, help="Whether the data is iid or not. Default is 1.")
+	return parser
 
 def main(args):
 	datasets = args.datasets
@@ -21,7 +23,7 @@ def main(args):
 	for dataset in datasets:
 		for method in methods:
 			assert method in ['fedcompress','client','fedavg'], 'Parameter `method` must be one of [`fedcompress`, `client`, `fedavg`]. Provided {}.'.format(method)
-			params = Params(method=method, dataset=dataset, num_rounds=rnds[dataset])
+			params = Params(method=method, dataset=dataset, num_rounds=rnds[dataset], iid=args.iid)
 
 			call_cmd = ["python3", "./src/main.py",
 			   "--method", method,
