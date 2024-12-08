@@ -65,6 +65,9 @@ class _Server(fl.server.Server):
 		self.compression = False
 		self.compression_metric = 'val_accuracy'
 		self.compression_metric_dict = {self.compression_metric:[], 'nb_clusters':[], 'val_score':[]}
+		# track the cumulative costs
+		self.cumulative_comp_costs = 0
+		self.cumulative_commu_costs = 0
 
 	def _is_final_round(self,rnd):
 		return self.num_rounds==rnd
@@ -198,11 +201,19 @@ class _Server(fl.server.Server):
 				downlink_size_in_bits = results['model_size'] * 1000 * 8
 				uplink_size_in_KB = results['compressed_model_size'] if 'compressed_model_size' in results.keys() else results['model_size']
 				uplink_size_in_bits = uplink_size_in_KB * 1000 * 8
+				# Compute costs
 				results["comp_costs"] = costs.measure_computation_cost(config['computation_times'])
 				results["avg_comp_cost"] = costs.measure_computation_cost(config['computation_time'])
+				self.cumulative_comp_costs += results["avg_comp_cost"]
+				results["cumulative_comp_costs"] = self.cumulative_comp_costs
+
+				# Communication cost
 				results["commu_costs"], results["avg_commu_cost"] = costs.measure_communication_cost(downlink_size_in_bits, 
 																						 uplink_size_in_bits, self.num_clients)
-				results["avg_total_cost"] = results["avg_commu_cost"] + results["avg_comp_cost"]
+				self.cumulative_commu_costs += results["avg_commu_cost"]
+				results["cumulative_commu_costs"] = self.cumulative_commu_costs
+				# Energy efficiency
+				results["avg_total_cost"] = self.cumulative_comp_costs + self.cumulative_commu_costs
 				results["cost_efficiency"] = costs.cost_efficiency(results["avg_total_cost"], results["accuracy"])
 
 			if self._is_final_round(rnd):
