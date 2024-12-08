@@ -8,7 +8,12 @@ flags.DEFINE_string("path", "./assets/results/", "Path to the results folder")
 flags.DEFINE_string("avg_uid", "", "Unique identifier for the experiment")
 flags.DEFINE_string("client_uid", "", "Unique identifier for the experiment")
 flags.DEFINE_string("com_uid", "", "Unique identifier for the experiment")
+flags.DEFINE_bool("iid", True, "IID data or not")
+
+
 METHODS = ["fedavg", "client", "fedcompress"]
+
+
 def find_files_by_uid(uid, path):
     files = os.listdir(path)
     target_files = [f for f in files if uid in f]
@@ -20,10 +25,13 @@ def eval_args(file_path: str, method: str, uid: str):
     args = pickle.load(open(file_path, "rb"))
     print(f"Arguments for {method} with uid {uid}:\n{args}\n")
     
-def plot_metrics(avg_df, client_df, com_df, metrics_name,
-                  title, x_label, y_label):
+def plot_metrics(avg_df, client_df, com_df, metrics_name, suffix,
+                  title, x_label, y_label, y_lim=None):
     plt.figure(figsize=(10, 5))
-    plt.plot(avg_df[metrics_name], label="FedAvg", color="gray")
+    if y_lim:
+        plt.ylim(y_lim)
+    if metrics_name in avg_df:
+        plt.plot(avg_df[metrics_name], label="FedAvg", color="gray")
     plt.plot(client_df[metrics_name], label="Client Compression Only", color="blue")
     plt.plot(com_df[metrics_name], label="FedCompress", color="red")
     plt.title(title)
@@ -31,6 +39,7 @@ def plot_metrics(avg_df, client_df, com_df, metrics_name,
     plt.ylabel(y_label)
     plt.grid()
     plt.legend()
+    plt.savefig(f"./assets/res-imgs/{metrics_name}-{suffix}.png", dpi=300)
     plt.show()
     
 def main(argv):
@@ -55,19 +64,24 @@ def main(argv):
           f"\nMetrics for FedCompress: shape-{com_df.shape} \n{com_df.columns}\n")
     
     # Plot metrics
-    # plot_metrics(avg_df, client_df, com_df, 
-    #              "test_accuracy", "Accuracy of Different Methods VS Epochs", "Epochs", "Accuracy (%)")
-    # plot_metrics(avg_df, client_df, com_df, 
-    #              "model_size", "Loss of Different Methods VS Epochs", "Epochs", "Model Size (KB)")
+    suffix = "IID" if FLAGS.iid else "Non-IID"
+    plot_metrics(avg_df, client_df, com_df,
+                 "num_clusters", suffix, f"Number of Clusters VS Communication Rounds on {suffix} Data", "Rounds", "Cluster Count")
+    plot_metrics(avg_df, client_df, com_df,
+                 "val_score", suffix, f"Quality Score VS Communciation Rounds on {suffix} Data", "Rounds", "Score")
     plot_metrics(avg_df, client_df, com_df, 
-                 "avg_comp_cost", "Avg Computational Cost VS Communication Rounds", "Rounds", "Energy (J)")
+                 "test_accuracy", suffix, f"Accuracy VS Communication Rounds on {suffix} Data", "Epochs", "Accuracy (%)")
+    plot_metrics(avg_df, client_df, com_df, 
+                 "model_size", suffix, f"Model Size VS Communication Rounds on {suffix} Data", "Epochs", "Model Size (KB)")
+    plot_metrics(avg_df, client_df, com_df, 
+                 "avg_comp_cost", suffix, f"Avg Computational Cost VS Communication Rounds on {suffix} Data", "Rounds", "Energy (J)")
     plot_metrics(avg_df, client_df, com_df,
-                 "avg_commu_cost", "Avg Communication Cost VS Communication Rounds", "Rounds", "Energy (J)")
+                 "avg_commu_cost", suffix, f"Avg Communication Cost VS Communication Rounds on {suffix} Data", "Rounds", "Energy (J)")
     plot_metrics(avg_df, client_df, com_df,
-                 "avg_total_cost", "Avg Total Cost VS Communication Rounds", "Rounds", "Energy (J)")
+                 "avg_total_cost", suffix, f"Avg Total Cost VS Communication Rounds on {suffix} Data", "Rounds", "Energy (J)")
     plot_metrics(avg_df, client_df, com_df,
-                 "cost_efficiency", "Cost Efficiency VS Communication Rounds", "Rounds", "Efficiecncy Rate")
-    
+                 "cost_efficiency", suffix, f"Cost Efficiency VS Communication Rounds on {suffix} Data", "Rounds", "Efficiecncy Rate")
+ 
     # print(f"Arguments for experiment {uid}: {args}\n\n")
     # df = pd.DataFrame(data)
     # print(f"Metrics for experiment {uid}: shape-{df.shape} \n{df.columns}")

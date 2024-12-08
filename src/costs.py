@@ -5,8 +5,8 @@ from typing import List, Tuple
 
 def measure_communication_cost(downlink_size: int, uplink_size: int, num_clients: int) -> Tuple[List[int], int]:
     rho = 5e-9 # cost of receiving one bit J/bit
-    beta1 = 1e-8 # cost of processing 1 bit of data, 1e-8 J/bit
-    beta2 = 1e-7 # cost of transferring 1 bit of data, 1e-10 J/bit/m^3
+    beta1 = 1e-10 # cost of processing 1 bit of data, 1e-8 J/bit
+    beta2 = 1.3e-14 # cost of transferring 1 bit of data, 1e-10 J/bit/m^3
     alpha = 3 # path loss exponent
     # Simulate the locations of the clients
     radius = 100  # radius of the circle

@@ -16,7 +16,8 @@ def create_parser():
 def main(args):
 	datasets = args.datasets
 	methods = args.methods
-	rnds = {'cifar10':20,'cifar100':500,'pathmnist':100,'spcm':50,'voxforge':40}
+	cifar10_rnds = 20 if args.iid else 30
+	rnds = {'cifar10': cifar10_rnds,'cifar100':500,'pathmnist':100,'spcm':50,'voxforge':40}
 
 	for dataset in datasets:
 		for method in methods:
