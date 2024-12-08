@@ -64,3 +64,5 @@ class Params:
             os.path.abspath("./assets/init_models/"),
             "{}_{}_random_1.h5".format(self.model, self.dataset),
         )
+        if not self.iid:
+            self.num_rounds += 10
